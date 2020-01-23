@@ -1,0 +1,86 @@
+---
+title: "P4DS_LBB"
+author: "Reza Dwi Utomo @utomoreza"
+date: "23/01/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+# Dataset
+
+# Preparation
+
+## Load Necessary Packages
+
+```{r}
+library('xlsx')
+library('rvest')
+```
+
+```{r}
+get_xls_file_from_html <- function() {
+    dataurl <- "https://www.glassdoor.com/research/job-market-report-historical/"
+    page <- read_html(dataurl)
+    
+    excels1 <- grep("\\.xlsx", html_nodes(page, "a"), value = T)
+    excels2 <- gsub(".*href=\"", "", excels1)
+    excels <- gsub("xlsx.*", "xlsx", excels2)
+    excels_path <- as.character(sapply(excels3,
+                                       FUN = substr,
+                                       start = 64,
+                                       stop = max(sapply(excels3, nchar))))
+    excels_path1_31 <- gsub(".*data-", "", excels_path[1:31])
+    excels_path[32] <- "2017-05.xlsx"
+    excels_path[33] <- "2017-04.xlsx"
+    excels_path[34] <- "2017-03.xlsx"
+    excels_path[35] <- "2017-02.xlsx"
+    excels_path[36] <- "2017-01.xlsx"
+    excels_path[37] <- "2016-12.xlsx"
+    excels_path[38] <- "2016-11.xlsx"
+    excels_path[39] <- "2016-10.xlsx"
+    
+    excels_path <- c(excels_path1_31, excels_path[32:39])
+    
+    destination <- paste("./datasets/", excels_path, sep = "")
+    
+    #file extraction
+    mapply(function(x, y) download.file(x, y, mode="wb"), x = excels, y = destination)
+}
+```
+
+```{r}
+load("filespath.RData")
+
+if (!file.exists(filespath)) {
+        get_xls_file_from_html
+    }
+
+# check_if_fileexist <- function(){
+#     if (!file.exists(filespath)) {
+#         get_xls_file_from_html
+#     }
+# }
+
+# mapply(check_if_fileexist)
+```
+
+
+```{r}
+
+dec19 <- read.xlsx(url(nov19_url), sheetIndex = 1, encoding = "UTF-8-BOM")
+```
+
+# Data Cleaning
+
+# Data Transformation
+
+# Plotting
+
+# Inference
+
+# Conclusions

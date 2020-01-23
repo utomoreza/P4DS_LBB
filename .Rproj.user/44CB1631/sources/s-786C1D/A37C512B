@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1579801355768.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A37C512B",
+    "lastKnownWriteTime" : 1579801653,
+    "last_content_update" : 1579801700940,
+    "path" : "~/.rstudio-desktop/projects/P4DS_LBB/P4DS_LBB.Rmd",
+    "project_path" : "P4DS_LBB.Rmd",
+    "properties" : {
+        "cursorPosition" : "69,3",
+        "last_setup_crc32" : "786C1Dbb338d19",
+        "scrollLine" : "56"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
