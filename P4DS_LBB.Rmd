@@ -18,8 +18,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load Necessary Packages
 
 ```{r}
-library('xlsx')
+library('readxl')
 library('rvest')
+library('lubridate')
 ```
 
 ```{r}
@@ -30,10 +31,10 @@ get_xls_file_from_html <- function() {
     excels1 <- grep("\\.xlsx", html_nodes(page, "a"), value = T)
     excels2 <- gsub(".*href=\"", "", excels1)
     excels <- gsub("xlsx.*", "xlsx", excels2)
-    excels_path <- as.character(sapply(excels3,
+    excels_path <- as.character(sapply(excels,
                                        FUN = substr,
                                        start = 64,
-                                       stop = max(sapply(excels3, nchar))))
+                                       stop = max(sapply(excels, nchar))))
     excels_path1_31 <- gsub(".*data-", "", excels_path[1:31])
     excels_path[32] <- "2017-05.xlsx"
     excels_path[33] <- "2017-04.xlsx"
@@ -65,12 +66,64 @@ if (!file.exists(filespath)) {
 #         get_xls_file_from_html
 #     }
 # }
+
+# mapply(check_if_fileexist)
 ```
 
+```{r}
+source("select_files_to_read.R")
+# select_files_to_read("Dec", 2019)
+
+myexport <- function(...) {
+    arg.list <- list(...)
+    names <- all.names(match.call())[-1]
+    for (i in seq_along(names)) assign(names[i],arg.list[[i]],.GlobalEnv)
+}
+
+loadMultipleFiles <- function(nmonth = c("Dec"), nyear = c(2019)) {
+    files_list1 <- list()
+    year <- 1:length(nyear)
+    month <- 1:length(nmonth)
+    totalIterate <<- length(nmonth) * length(nyear)
+
+    for (i in year) {
+        if (length(year) == 1) {
+            for (j in month) {
+            select_files_to_read(nmonth[j], nyear)
+            files_list1[[j]] <- tempfilename
+            names(files_list1)[j] <- xlsname
+            }
+            break
+        }
+        for (j in month) {
+            # browser()
+            select_files_to_read(nmonth[j], nyear[i])
+            files_list1[[j]] <- tempfilename
+            names(files_list1)[j] <- xlsname
+            # browser()
+        }
+        # browser()
+    }
+    files_list <<- files_list1
+}
+```
 
 ```{r}
+loadMultipleFiles(nmonth = c("Dec","Nov","Oct","Sep","Aug","Jul","Jun","May","Apr","Mar","Feb","Jan"))
 
-dec19 <- read.xlsx(url(nov19_url), sheetIndex = 1, encoding = "UTF-8-BOM")
+for (k in 1:totalIterate) {
+    # browser()
+    assign(names(files_list)[k], as.data.frame(files_list[[k]]))
+    # browser()
+}
+rm(files_list, tempfilename)
+```
+
+## Combine months DFs into 1 DF (year)
+```{r}
+# totalDF <- ls(pattern = "2019")
+
+year2019 <- rbind(Apr2019, Aug2019, Dec2019, Feb2019, Jan2019, Jul2019, Jun2019, Mar2019, May2019, Nov2019, Oct2019, Sep2019)
 ```
 
 # Data Cleaning
