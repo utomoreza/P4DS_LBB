@@ -13,6 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Dataset
 
+## Methodology Used
+
+[methodology and metadata](https://www.glassdoor.com/research/app/uploads/sites/2/2019/04/Methodology-Glassdoor-Job-Market-Report-2-2.pdf)
+
 # Preparation
 
 ## Load Necessary Packages
@@ -21,6 +25,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library('readxl')
 library('rvest')
 library('lubridate')
+library('zoo')
+library('openxlsx')
 ```
 
 ```{r}
@@ -124,9 +130,36 @@ rm(files_list, tempfilename)
 # totalDF <- ls(pattern = "2019")
 
 year2019 <- rbind(Apr2019, Aug2019, Dec2019, Feb2019, Jan2019, Jul2019, Jun2019, Mar2019, May2019, Nov2019, Oct2019, Sep2019)
+
+write.xlsx(year2019, "./datasets/year2019.xlsx")
 ```
 
+Yeah! Finally, we've got our prepared data! Let's move on to clean the data.
+
 # Data Cleaning
+
+```{r}
+str(year2019)
+```
+
+```{r}
+colnames(year2019) <- c("Metro", "Dimension_Type", "Year_Month", "Dimension", "Measure", "Value", "YoY")
+
+unique(year2019$Metro) # Change to Factor
+unique(year2019$Dimension_Type) # Change to Factor
+unique(year2019$Measure) # Change to Factor
+unique(year2019$Dimension) # Keep the data type
+
+year2019$Metro <- as.factor(year2019$Metro)
+year2019$Dimension_Type <- as.factor(year2019$Dimension_Type)
+year2019$Measure <- as.factor(year2019$Measure)
+year2019$Year_Month <- as.Date(sapply(year2019$Year_Month, as.yearmon))
+for (i in nrow(year2019)) {
+    year2019$Year_Month[i] <- as.Date(as.yearmon(year2019$Year_Month[i]))
+}
+
+year(year2019$Month)
+```
 
 # Data Transformation
 

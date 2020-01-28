@@ -1,5 +1,8 @@
-"0","library('lubridate')
+"0","library('readxl')"
+"0","library('rvest')"
+"2","Loading required package: xml2
 "
+"0","library('lubridate')"
 "2","
 Attaching package: ‘lubridate’
 
@@ -9,3 +12,14 @@ Attaching package: ‘lubridate’
     date
 
 "
+"0","library('zoo')"
+"2","
+Attaching package: ‘zoo’
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    as.Date, as.Date.numeric
+
+"
+"0","library('openxlsx')"
