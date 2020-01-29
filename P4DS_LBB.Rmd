@@ -27,6 +27,7 @@ library('rvest')
 library('lubridate')
 library('zoo')
 library('openxlsx')
+library(tidyverse)
 ```
 
 ```{r}
@@ -136,29 +137,244 @@ year2019 <- rbind(Apr2019, Aug2019, Dec2019, Feb2019, Jan2019, Jul2019, Jun2019,
 
 Yeah! Finally, we've got our prepared data! Let's move on to clean the data.
 
-# Data Cleaning
+# Data Cleansing
 
+First of all, we need to see the data structure.
 ```{r}
 str(year2019)
 ```
 
-```{r}
-colnames(year2019) <- c("Metro", "Dimension_Type", "Year_Month", "Dimension", "Measure", "Value", "YoY")
+Based on the information above, we need to change data type a number of columns. However, before we begin do that, for the sake of convenience, we need to fix two columns' name:
+- "Dimension Type" to "Dimention_Type"
+- "Month" to "Date"
 
-# unique(year2019$Metro) # Change to Factor
-# unique(year2019$Dimension_Type) # Change to Factor
-# unique(year2019$Measure) # Change to Factor
-# unique(year2019$Dimension) # Keep the data type
-# 
-# year2019$Metro <- as.factor(year2019$Metro)
-# year2019$Dimension_Type <- as.factor(year2019$Dimension_Type)
-# year2019$Measure <- as.factor(year2019$Measure)
-# year2019$Year_Month <- as.Date(sapply(year2019$Year_Month, as.yearmon))
-# for (i in nrow(year2019)) {
-#     year2019$Year_Month[i] <- as.Date(as.yearmon(year2019$Year_Month[i]))
-# }
-# 
-# year(year2019$Month)
+```{r}
+colnames(year2019) <- c("Metro", "Dimension_Type", "Date", "Dimension", "Measure", "Value", "YoY")
+```
+
+Then, referring to the data structure above, all columns' data type are in character data type initially. By using our judgement, we're sure the columns of `Date`, `Value`, and `YoY` should be in date, numeric, and numeric data type respectively. But, for the rest of columns, we have to make sure whether they should be left as they are or be changed to factor data type.
+
+* `Metro` column
+
+```{r}
+unique(year2019$Metro)
+```
+
+For `Metro` column, there are 16 unique observations only. Therefore, it will be more easier to handle if we change this column to factor data type.
+
+```{r}
+year2019$Metro <- as.factor(year2019$Metro)
+```
+
+* `Dimension_Type` column
+
+```{r}
+unique(year2019$Dimension_Type)
+```
+
+For `Dimension_Type` column, there are 5 unique observations only so that no wonder if we need to change its data type to factor immediately.
+
+```{r}
+year2019$Dimension_Type <- as.factor(year2019$Dimension_Type)
+```
+
+* `Dimension` column
+
+```{r}
+unique(year2019$Dimension)
+```
+
+For `Dimension_Type` column, there are 135 unique observations. That's a big number! So, we just leave its data type as it is.
+
+* `Measure` column
+
+```{r}
+unique(year2019$Measure)
+```
+
+For `Dimension_Type` column, there are 6 unique observations only. So, let's change its data type to factor.
+
+```{r}
+year2019$Measure <- as.factor(year2019$Measure)
+```
+
+* `Date` column
+
+While we're sure `Date` column should be in date data type, we still need to arrange its data type. Before we begin, let's take a quick look at the head and tail of such column.
+
+```{r}
+head(year2019$Date)
+tail(year2019$Date)
+```
+
+We saw that the format of the column is in year-month, without date. However, since the total number of rows of the data is 50015, we are not sure yet whether all observations of such column are written in the same format. What if there are some row written in year-month-date or even other format?
+
+To answer this, let's see the column deeper by using `unique()` function.
+
+```{r}
+unique(year2019$Date)
+```
+
+Bingo! As I told you, there are some with year-month-date format. Therefore, we've got two formats in one column. And since this is annoying, we have to unify all observations to one format only. So, we have two format options: year-month or year-month-date.
+
+If we were to choose the first option, we will lose other observations' date information so that this option is not affordable. Then, if we were to choose another option, the consequence is that we have to coerce the year-month format oservations to year-month-date format. Simply, we could insert 'dummy' date, i.e. 01, at the end of each year-month observation. Therefore, I think it will be more comfortable if we select the second choice.
+
+```{r}
+isString7Chars <- function(input) {
+    if (nchar(input) == 7) {
+        output <- paste0(input, '-01')
+    } else {
+        output <- input
+    }
+}
+
+year2019$Date <- as.character(sapply(year2019$Date, isString7Chars)) %>% 
+    ymd()
+```
+
+* `Value` column
+
+We stated earlier that `Value` should be in numeric data type. But, before we start to change its data type, let's take a look of it using `head()`, `tail()`, and `unique()` functions.
+
+```{r}
+head(year2019$Value)
+tail(year2019$Value)
+unique(year2019$Value)
+```
+
+We can see that in general there are two formats: those with `$` sign and those without one. So, before we jump to data type change, we have to accomplish those two. In order to assign `Value` column to be in numeric data type, we have to remove the `$` sign so that we can use the following codes.
+
+```{r}
+year2019$Value <- sapply(year2019$Value, function(x) as.numeric(gsub("[,$]", "", x)))
+```
+
+* `YoY` column
+
+For this column, we can perform the steps as `Value` column in order to check the data format.
+
+```{r}
+head(year2019$YoY)
+tail(year2019$YoY)
+unique(year2019$YoY)
+```
+
+We saw that in general there are 4 formats:
+- Those with `%` and `-` signs
+- Those with `%` sign only
+- Those with `-` sign only
+- Those without any sign
+
+The `%` sign indicates percentage (1/100), whereas the `-` means negative number. Though we're not 100% sure, we could imply that those without the `%` sign also mean percentage, but perhaps the data entry clerk forgot to put the sign. And for those without `-` sign, we could interpret them as positive number.
+
+Using the above idea, we can change the column data type to numeric and format it in 1/100 format (not in `%` symbol).
+
+```{r}
+year2019$YoY <- sapply(year2019$YoY, function(x) as.numeric(gsub("[%]", "", x)))/100
+```
+
+Well done! We have adjusted all columns' format. So, now let's check it the data out to convince that we did well.
+
+```{r}
+head(year2019)
+```
+
+Alright. All columns have been in appropriate data type. For the next step, let's move on to the next section below.
+
+# Data Transformation
+
+As our data is too complicated to infer directly from one table, it will be more convenient if we split it into several subtables: salary for each job title, salary for each sector, salary for each company size, job openings for each sector, job openings for each company size, 
+
+## Create a Table "Salary for each job title"
+
+```{r}
+Salary_Jobs <- year2019 %>% 
+    filter(Dimension_Type == "Job Title") %>% 
+    select(Metro, Year_Month, Dimension, Value, YoY)
+colnames(Salary_Jobs) <- c("Area","Date","Job_Title", "Salary", "YoY")
+```
+
+## Create a Table "Salary for each sector"
+
+```{r}
+Salary_Sectors <- year2019 %>% 
+    filter(Dimension_Type == "Industry" & Measure == "Median Base Pay") %>% 
+    select(Metro, Year_Month, Dimension, Value)
+colnames(Salary_Sectors) <- c("Area","Date","Sector", "Salary")
+```
+
+## Create a Table "Salary for each company size"
+
+```{r}
+Salary_CompanySize <- year2019 %>% 
+    filter(Dimension_Type == "Company Size" & Measure == "Median Base Pay") %>% 
+    select(Metro, Year_Month, Dimension, Value)
+colnames(Salary_CompanySize) <- c("Area","Date","Company_Size", "Salary")
+```
+
+## Create a Table "Job openings for each sector"
+
+```{r}
+JobOpening_Sectors <- year2019 %>% 
+    filter(Dimension_Type == "Industry" & Measure == "Job Openings") %>% 
+    select(Metro, Year_Month, Dimension, Value, YoY)
+colnames(JobOpening_Sectors) <- c("Area","Date","Sector", "Openings", "YoY")
+```
+
+## Create a Table "Job openings for each company size"
+
+```{r}
+JobOpening_CompanySize <- year2019 %>% 
+    filter(Dimension_Type == "Company Size" & Measure == "Job Openings") %>% 
+    select(Metro, Year_Month, Dimension, Value, YoY)
+colnames(JobOpening_CompanySize) <- c("Area","Date","Company_Size", "Openings", "YoY")
+```
+
+## Create a Table "Quick facts"
+
+This subtable contains Median Pay and Job Openings data from Glassdoor and US BLS (Bureau of Labor Statistics) for each area.
+
+```{r}
+QuickFacts <- year2019 %>% 
+    filter(Dimension_Type == "Quick Facts") %>% 
+    select(Metro, Year_Month, Dimension, Value, YoY) %>% 
+    pivot_wider(names_from = Dimension, values_from = c(Value, YoY))
+QuickFacts <- as.data.frame(cbind(QuickFacts$Metro,
+                    QuickFacts$Year_Month,
+                    QuickFacts$`Value_Metro Median Pay`,
+                    QuickFacts$`Value_U.S. Median Pay`,
+                    QuickFacts$`Value_Metro Job Openings`,
+                    QuickFacts$`Value_U.S. Job Openings`,
+                    QuickFacts$`YoY_Metro Median Pay`,
+                    QuickFacts$`YoY_U.S. Median Pay`,
+                    QuickFacts$`YoY_Metro Job Openings`,
+                    QuickFacts$`YoY_U.S. Job Openings`))
+colnames(QuickFacts) <- c("Area","Date","Metro_Median_Pay", "US_Median_Pay",
+                            "Metro_JobOpenings","US_JobOpenings","YoY_Metro_Median_Pay",
+                            "YoY_US_Median_Pay","YoY_Metro_JobOpenings","YoY_US_JobOpenings")
+```
+
+## Create a Table "Time Seris"
+
+This subtable consists of 
+
+Let's make sure that `YoY` column when `Dimension_Type == "Timeseries"` is completely NA.
+
+```{r}
+year2019 %>% 
+    filter(Dimension_Type == "Timeseries") %>% 
+    nrow()
+year2019 %>% 
+    filter(Dimension_Type == "Timeseries") %>% 
+    is.na() %>% 
+    colSums()
+```
+
+```{r}
+TimeSeries <- year2019 %>% 
+    filter(Dimension_Type == "Timeseries") %>% 
+    select(Metro, Year_Month, Dimension, as.numeric(Value)) %>% 
+    pivot_wider(names_from = Dimension, values_from = Value)
+    select(Metro, Year_Month, )
 ```
 
 # Data Transformation
