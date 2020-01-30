@@ -1,6 +1,10 @@
 {
-    "path" : "~/.rstudio-desktop/projects/3. DV",
+    "path" : "~/.rstudio-desktop/projects/P4DS_LBB",
     "sortOrder" : [
+        {
+            "ascending" : false,
+            "columnIndex" : 4
+        },
         {
             "ascending" : true,
             "columnIndex" : 2
