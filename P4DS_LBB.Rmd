@@ -57,11 +57,11 @@ This column determines what method of measurement used.
 + Value
 Depending on Dimension Type and Dimension columns you chose, this Value column contains either median salary or number of job openings. The value with '$' (dollar) sign indicates salary in USD.
 + YoY:
-Year over year in percent. For more information about how to understand and calculate YoY, you can read this [article](https://www.sisense.com/blog/calculate-year-year-growth/) I found really helpful.
+Year over year in percent. For more information about how to understand and calculate YoY, you can read this [article](https://www.sisense.com/blog/calculate-year-year-growth/) I found really helpful. However, in this article, I won't highlight this YoY feature.
 
 Below is a quick look of the data in spreadsheet application.
 
-![](data_screenshot.png)
+![](data_screenshot.png) {#pic}
 
 For more information regarding the data, you can read its methodology written exclusively by Glassdoor [here](https://www.glassdoor.com/research/app/uploads/sites/2/2019/04/Methodology-Glassdoor-Job-Market-Report-2-2.pdf).
 
@@ -80,7 +80,7 @@ library('lubridate')
 library('zoo')
 library('openxlsx')
 library('tidyverse')
-library('kableExtra')
+# library('kableExtra')
 ```
 
 ## Download and Save the Data
@@ -283,6 +283,7 @@ year20182019 <- rbind(year2018, year2019)
 # if you want, you can save the year dataframe as xls file in local directory
 # write.xlsx(year2019, "./datasets/year2019.xlsx")
 # write.xlsx(year2018, "./datasets/year2018.xlsx")
+write.xlsx(year20182019, "./datasets/year2018-2019.xlsx")
 
 # for ease of use and saving more memory, we need to remove all unnecessary objects
 temp_objects <- ls()
@@ -290,11 +291,40 @@ rm(list = temp_objects[-c(11,19,28,35)])
 rm(temp_objects)
 ```
 
-Yeah! Finally, we've got our prepared data! Let's move on to clean the data.
+Yeah! Finally, we've got our prepared file! Let's move on to clean it.
 
 # Data Cleansing {#daclen}
 
-First of all, we need to see the data structure.
+First of all, since the file used is big enough, it is recommended to open it in any Spreadsheet application in advance to obtain and explore a quick insight regarding the data.
+
+After viewing the file in Spreadsheet application more detail as shown in [this figure](#pic), firstly, we focus on `Dimension Type` column as it explains different information as follows:
+
+1. Company Size
+
+This value has the following Dimensions:
+  
+  + <51 employees
+  + 51-200 employees
+  + 201-500 employees
+  + 501-1000 employees
+  + 1001-5000 employees
+  + +5000 employees
+  + Other: we should highlight this!
+  + Empty value: we should highlight this!
+  
+This column also has the following Measures:
+
+  + Job Openings: having its specific Value format
+  + Median Base Pay: having its specific Value format
+  
+2. Industry
+3. Job Title
+4. Quick Facts
+5. Timeseries
+
+So, 
+
+we need to see the data structure.
 
 ```{r}
 str(year20182019)
@@ -310,52 +340,89 @@ colnames(year20182019) <- c("Metro", "Dimension_Type", "Date", "Dimension", "Mea
 
 Then, referring to the data structure above, all columns' data type are in character data type initially. By using our judgement, we're sure the columns of `Date`, `Value`, and `YoY` should be in date, numeric, and numeric data type respectively. But, for the rest of columns, we have to make sure whether they should be left as they are or be changed to factor data type.
 
+## Drop NA Value
+
+As a starter, let's check whether NA exists.
+
+```{r}
+year20182019 %>% is.na() %>% colSums()
+```
+
+We can see that NA exist in `Dimension`, `Value`, and `YoY` columns. Let's see each of column with NA values.
+
+```{r}
+year20182019[is.na(year20182019$Dimension),]
+```
+
+From the dataframe above, it can be seen that the 88 NAs occur on `Dimension_Type == "Company Size"` and `Measure == "Job Openings"` only.
+
+```{r}
+year20182019[is.na(year20182019$Value),]
+```
+
+It can be seen from dataframe above that the 297 NA values in `Value` column only happen in `Dimension_Type == "Timeseries"`, `Dimension == "Job Openings`, and `Dimension == "Job Openings`.
+
+```{r}
+year20182019[is.na(year20182019$YoY),]
+```
+
+From dataframe above, it can be seen that there are lots of NAs in `YoY` column. However, since we're not interested in YoY in this article, it's not a problem if we completely drop this column. Then, we clear all NAs in the other two columns.
+
+```{r}
+DF <- year20182019[-c(length(year20182019))]
+DF <- drop_na(DF)
+head(DF)
+is.na(DF) %>% colSums()
+```
+
+Excellent! All data clean! Then, now let's move on to set the data type of each column.
+
 * `Metro` column
 
 ```{r}
-unique(year20182019$Metro)
+unique(DF$Metro)
 ```
 
 For `Metro` column, there are 16 unique observations only. Therefore, it will be more easier to handle if we change this column to factor data type.
 
 ```{r}
-year20182019$Metro <- as.factor(year2019$Metro)
+DF$Metro <- as.factor(DF$Metro)
 ```
 
 * `Dimension_Type` column
 
 ```{r}
-unique(year20182019$Dimension_Type)
+unique(DF$Dimension_Type)
 ```
 
 For `Dimension_Type` column, there are 5 unique observations only so that no wonder if we need to change its data type to factor immediately.
 
 ```{r}
-year20182019$Dimension_Type <- as.factor(year20182019$Dimension_Type)
+DF$Dimension_Type <- as.factor(DF$Dimension_Type)
 ```
 
 * `Dimension` column
 
 ```{r}
-unique(year20182019$Dimension) %>% 
-     kable() %>%
-     kable_styling() %>%
-     scroll_box(width = "500px", height = "200px")
-length(unique(year20182019$Dimension))
+unique(DF$Dimension) #%>% 
+     # kable() %>%
+     # kable_styling() %>%
+     # scroll_box(width = "500px", height = "200px")
+length(unique(DF$Dimension))
 ```
 
-For `Dimension_Type` column, there 135 unique observations. That's a big number! So, we just leave its data type as it is.
+For `Dimension` column, there 135 unique observations. That's a big number! So, we just leave its data type as it is.
 
 * `Measure` column
 
 ```{r}
-unique(year20182019$Measure)
+unique(DF$Measure)
 ```
 
-For `Dimension_Type` column, there are 6 unique observations only. So, let's change its data type to factor.
+For `Measure` column, there are 6 unique observations only. So, let's change its data type to factor.
 
 ```{r}
-year20182019$Measure <- as.factor(year20182019$Measure)
+DF$Measure <- as.factor(DF$Measure)
 ```
 
 * `Date` column
@@ -363,8 +430,8 @@ year20182019$Measure <- as.factor(year20182019$Measure)
 While we're sure `Date` column should be in date data type, we still need to arrange its data type. Before we begin, let's take a quick look at the head and tail of such column.
 
 ```{r}
-head(year20182019$Date)
-tail(year20182019$Date)
+head(DF$Date)
+tail(DF$Date)
 ```
 
 We saw that the format of the column is in year-month, without date. However, since the total number of rows of the data is 50015, we are not sure yet whether all observations of such column are written in the same format. What if there are some row written in year-month-date or even other format?
@@ -372,10 +439,10 @@ We saw that the format of the column is in year-month, without date. However, si
 To answer this, let's see the column deeper by using `unique()` function.
 
 ```{r}
-unique(year20182019$Date) %>% 
-     kable() %>%
-     kable_styling() %>%
-     scroll_box(width = "500px", height = "200px")
+unique(DF$Date) #%>% 
+     # kable() %>%
+     # kable_styling() %>%
+     # scroll_box(width = "500px", height = "200px")
 ```
 
 Bingo! As I told you, there are some with year-month-date format. Therefore, we've got two formats in one column. And since this is annoying, we have to unify all observations to one format only. So, we have two format options: year-month or year-month-date.
@@ -391,7 +458,7 @@ isString7Chars <- function(input) {
      }
 }
 
-year20182019$Date <- as.character(sapply(year20182019$Date, isString7Chars)) %>% 
+DF$Date <- as.character(sapply(DF$Date, isString7Chars)) %>% 
      ymd()
 ```
 
@@ -400,21 +467,31 @@ year20182019$Date <- as.character(sapply(year20182019$Date, isString7Chars)) %>%
 We stated earlier that `Value` should be in numeric data type. But, before we start to change its data type, let's take a look of it using `head()`, `tail()`, and `unique()` functions.
 
 ```{r}
-head(year20182019$Value)
-tail(year20182019$Value)
+head(DF$Value)
+tail(DF$Value)
 ```
 
-```{r}
-unique(year20182019$Value) %>%   
-     kable() %>%
-     kable_styling() %>%
-     scroll_box(width = "500px", height = "200px")
+```{r, echo=FALSE}
+unique(DF$Value) #%>%
+     # kable() %>%
+     # kable_styling() %>%
+     # scroll_box(width = "500px", height = "200px")
 ```
 
-We can see that in general there are two formats: those with `$` sign and those without one. So, before we jump to data type change, we have to accomplish those two. In order to assign `Value` column to be in numeric data type, we have to remove the `$` sign so that we can use the following codes.
+We can see that in general there are three formats: those with `$` sign, those without one, and those with `.` at the end each number. So, before we jump to data type change, we have to handle those three. We can use the following codes.
 
 ```{r}
-year20182019$Value <- sapply(year20182019$Value, function(x) as.numeric(gsub("[,$]", "", x)))
+DropDollar <- function(input){
+  output <- input %>% 
+               str_replace("\\$ ", "") %>% 
+               str_replace(",", "") %>% 
+               as.numeric() %>% 
+               round()
+  return(output)
+}
+
+DF$Value <- sapply(DF$Value, DropDollar)
+DF[is.na(DF$Value),]
 ```
 
 * `YoY` column
@@ -422,15 +499,15 @@ year20182019$Value <- sapply(year20182019$Value, function(x) as.numeric(gsub("[,
 For this column, we can perform the steps as `Value` column in order to check the data format.
 
 ```{r}
-head(year20182019$YoY)
-tail(year20182019$YoY)
+head(DF$YoY)
+tail(DF$YoY)
 ```
 
 ```{r}
-unique(year20182019$YoY) %>%   
-     kable() %>%
-     kable_styling() %>%
-     scroll_box(width = "500px", height = "200px")
+unique(DF$YoY) #%>%   
+     # kable() %>%
+     # kable_styling() %>%
+     # scroll_box(width = "500px", height = "200px")
 ```
 
 We saw that in general there are 4 formats:
@@ -444,13 +521,13 @@ The `%` sign indicates percentage (1/100), whereas the `-` means negative number
 Using the above idea, we can change the column data type to numeric and format it in 1/100 format (not in `%` symbol).
 
 ```{r}
-year20182019$YoY <- sapply(year20182019$YoY, function(x) as.numeric(gsub("[%]", "", x)))/100
+DF$YoY <- sapply(DF$YoY, function(x) as.numeric(gsub("[%]", "", x)))/100
 ```
 
 Well done! We have adjusted all columns' format. So, now let's check it the data out to convince ourself that we did well.
 
 ```{r}
-head(year20182019)
+head(DF)
 ```
 
 Alright. All columns have been in appropriate data type. For the next step, let's move on to the next section below.
@@ -464,7 +541,7 @@ As our data is too complicated to infer directly from one table, it will be more
 This subtable consists of median salary and YoY for each job title in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Job Title"`.
 
 ```{r}
-Salary_Jobs <- year20182019 %>% 
+Salary_Jobs <- DF %>% 
      filter(Dimension_Type == "Job Title") %>% 
      select(Metro, Date, Dimension, Value, YoY)
 colnames(Salary_Jobs) <- c("Area","Date","Job_Title", "Salary", "YoY")
@@ -491,7 +568,7 @@ levels(Salary_Jobs$Job_Title)
 This subtable consists of median salary for each sector in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Industry"` and `Measure` of `"Median Base Pay"`.
 
 ```{r}
-Salary_Sectors <- year20182019 %>% 
+Salary_Sectors <- DF %>% 
      filter(Dimension_Type == "Industry" & Measure == "Median Base Pay") %>% 
      select(Metro, Date, Dimension, Value)
 colnames(Salary_Sectors) <- c("Area","Date","Sector", "Salary")
@@ -518,7 +595,7 @@ levels(Salary_Sectors$Sector)
 This subtable consists of median salary for each company size in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Company Size"` and `Measure` of `"Median Base Pay"`.
 
 ```{r}
-Salary_CompanySize <- year20182019 %>% 
+Salary_CompanySize <- DF %>% 
      filter(Dimension_Type == "Company Size" & Measure == "Median Base Pay") %>% 
      select(Metro, Date, Dimension, Value)
 colnames(Salary_CompanySize) <- c("Area","Date","Company_Size", "Salary")
@@ -545,7 +622,7 @@ levels(Salary_CompanySize$Company_Size)
 This subtable consists of number of job openings and its YoY for each sector in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Industry"` and `Measure` of `"Job Openings"`.
 
 ```{r}
-JobOpening_Sectors <- year20182019 %>% 
+JobOpening_Sectors <- DF %>% 
      filter(Dimension_Type == "Industry" & Measure == "Job Openings") %>% 
      select(Metro, Date, Dimension, Value, YoY)
 colnames(JobOpening_Sectors) <- c("Area","Date","Sector", "Openings", "YoY")
@@ -572,7 +649,7 @@ levels(JobOpening_Sectors$Sector)
 This subtable consists of number of job openings and its YoY for each company size in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Company Size"` and `Measure` of `"Job Openings"`.
 
 ```{r}
-JobOpening_CompanySize <- year20182019 %>% 
+JobOpening_CompanySize <- DF %>% 
      filter(Dimension_Type == "Company Size" & Measure == "Job Openings") %>% 
      select(Metro, Date, Dimension, Value, YoY)
 colnames(JobOpening_CompanySize) <- c("Area","Date","Company_Size", "Openings", "YoY")
@@ -616,7 +693,7 @@ Great! All clean, without any NA and "Other" value anymore.
 This subtable contains Median Pay and Job Openings data from Glassdoor and US [BLS](https://www.bls.gov/) (Bureau of Labor Statistics) for each area.
 
 ```{r}
-QuickFacts <- year20182019 %>% 
+QuickFacts <- DF %>% 
      filter(Dimension_Type == "Quick Facts") %>% 
      select(Metro, Date, Dimension, Value, YoY) %>% 
      pivot_wider(names_from = Dimension, values_from = c(Value, YoY))
@@ -640,10 +717,10 @@ colnames(QuickFacts) <- c("Area","Date","Metro_Median_Pay", "US_Median_Pay",
 This subtable comes from `Timeseries` column in the main dataframe. It's going to have data of median salary and job openings in certain time interval. But, it doesn't have `YoY` column. But, before we decide that we won't use `YoY` column, let's make sure such column when `Dimension_Type == "Timeseries"` is completely NA.
 
 ```{r}
-year20182019 %>% 
+DF %>% 
      filter(Dimension_Type == "Timeseries") %>% 
      nrow()
-year20182019 %>% 
+DF %>% 
      filter(Dimension_Type == "Timeseries") %>% 
      is.na() %>% 
      colSums()
@@ -656,7 +733,7 @@ As this Time Series subtable comprises median salary and job openings, it will b
 * Time Series for Job Openings
 
 ```{r}
-TimeSeries_JobOpenings <- year20182019 %>% 
+TimeSeries_JobOpenings <- DF %>% 
   filter(Dimension_Type == "Timeseries" & Dimension == "Job Openings") %>%
   select(Metro, Date, Value) %>% 
   group_by(Metro, Date) %>% 
@@ -684,7 +761,7 @@ TimeSeries_JobOpenings <- drop_na(TimeSeries_JobOpenings)
 * Time Series for Median Salary
 
 ```{r}
-TimeSeries_Salary <- year20182019 %>% 
+TimeSeries_Salary <- DF %>% 
   filter(Dimension_Type == "Timeseries" & Dimension == "Metro Median Base Pay") %>%
   select(Metro, Date, Value) %>% 
   group_by(Metro, Date) %>% 
