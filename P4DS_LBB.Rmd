@@ -4,7 +4,6 @@ author: "Reza Dwi Utomo @utomoreza"
 date: "23/01/2020"
 output:
   html_document:
-    css: style.css
     highlight: zenburn
     number_sections: yes
     theme: flatly
@@ -13,13 +12,6 @@ output:
     toc_float:
       collapsed: no
     df_print: paged
-  word_document:
-    toc: yes
-    toc_depth: '2'
-  pdf_document:
-    fig_caption: yes
-    latex_engine: xelatex
-  fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -35,13 +27,19 @@ This article aims to meet the first LBB (Learn by Building) assignment from Algo
 * How to prepare the data can be read in [Preparation](#prep)
 * Steps to clean the data is in [Data Cleansing](#daclen)
 * Steps to transform the data is found in [Data Transformation](#datran)
-* Data visualization can be seen in [Plotting](#plot)
-* Discussion about the plotting is described in [Inference](#infer)
+* Discussion about answering the pre-defined questions is described in [Analysis](#analys)
 * Conclusions of the article can be read in [Conclusions](#concl)
 
 Here, I intend to employ data from Glassdoor regarding job market in the US. You can find the web page [here](https://www.glassdoor.com/research/job-market-report-historical/). Also, Glassdoor has its visualizations on the data as shown [here](https://www.glassdoor.com/research/job-market-report/).
 
 I publish this article on [RPubs](), but you can find the codes on [GitHub](https://github.com/utomoreza/P4DS_LBB). Feel free to use or clone it.
+
+By arranging this article, I'm going to answer several questions as follows:
+1. What is the job title paid the most in each area in every given year?
+2. Which top 5 sectors do pay salary the most in Boston every year?
+3. Is it true that a company with more than 5000 employees in San Fransisco pays its employees' salary higher than a startup (a company with employees less than 200) in NYC? Show the data in every year!
+4. What is the trend of Data Scientist job role's salary and need in each area and in the entire US?
+5. Does Physician still become the highest paid job role nationally?
 
 # Dataset {#daset}
 
@@ -82,6 +80,7 @@ library('lubridate')
 library('zoo')
 library('openxlsx')
 library('tidyverse')
+library('kableExtra')
 ```
 
 ## Download and Save the Data
@@ -90,32 +89,32 @@ In the code chunk below, we're going to define a function called `get_xls_file_f
 
 ```{r}
 get_xls_file_from_html <- function() {
-    dataurl <- "https://www.glassdoor.com/research/job-market-report-historical/"
-    page <- read_html(dataurl)
-    
-    excels1 <- grep("\\.xlsx", html_nodes(page, "a"), value = T)
-    excels2 <- gsub(".*href=\"", "", excels1)
-    excels <- gsub("xlsx.*", "xlsx", excels2)
-    excels_path <- as.character(sapply(excels,
-                                       FUN = substr,
-                                       start = 64,
-                                       stop = max(sapply(excels, nchar))))
-    excels_path1_31 <- gsub(".*data-", "", excels_path[1:31])
-    excels_path[32] <- "2017-05.xlsx"
-    excels_path[33] <- "2017-04.xlsx"
-    excels_path[34] <- "2017-03.xlsx"
-    excels_path[35] <- "2017-02.xlsx"
-    excels_path[36] <- "2017-01.xlsx"
-    excels_path[37] <- "2016-12.xlsx"
-    excels_path[38] <- "2016-11.xlsx"
-    excels_path[39] <- "2016-10.xlsx"
-    
-    excels_path <- c(excels_path1_31, excels_path[32:39])
-    
-    destination <- paste("./datasets/", excels_path, sep = "")
-    
-    #file extraction
-    mapply(function(x, y) download.file(x, y, mode="wb"), x = excels, y = destination)
+     dataurl <- "https://www.glassdoor.com/research/job-market-report-historical/"
+     page <- read_html(dataurl)
+     
+     excels1 <- grep("\\.xlsx", html_nodes(page, "a"), value = T)
+     excels2 <- gsub(".*href=\"", "", excels1)
+     excels <- gsub("xlsx.*", "xlsx", excels2)
+     excels_path <- as.character(sapply(excels,
+                                        FUN = substr,
+                                        start = 64,
+                                        stop = max(sapply(excels, nchar))))
+     excels_path1_31 <- gsub(".*data-", "", excels_path[1:31])
+     excels_path[32] <- "2017-05.xlsx"
+     excels_path[33] <- "2017-04.xlsx"
+     excels_path[34] <- "2017-03.xlsx"
+     excels_path[35] <- "2017-02.xlsx"
+     excels_path[36] <- "2017-01.xlsx"
+     excels_path[37] <- "2016-12.xlsx"
+     excels_path[38] <- "2016-11.xlsx"
+     excels_path[39] <- "2016-10.xlsx"
+     
+     excels_path <- c(excels_path1_31, excels_path[32:39])
+     
+     destination <- paste("./datasets/", excels_path, sep = "")
+     
+     #file extraction
+     mapply(function(x, y) download.file(x, y, mode="wb"), x = excels, y = destination)
 }
 ```
 
@@ -124,9 +123,11 @@ The code chunk below is used to check whether we've had the xlsx files already i
 ```{r, warning=FALSE, results='hide'}
 load("filespath.RData")
 
-if (!file.exists(filespath)) {
-        get_xls_file_from_html
-    }
+# checkIfFilesExist <- function(filespath){
+#      if (!file.exists(filespath)) {
+#           get_xls_file_from_html()
+#      }
+# }
 
 # check_if_fileexist <- function(){
 #     if (!file.exists(filespath)) {
@@ -214,56 +215,79 @@ source("select_files_to_read.R")
 # }
 
 loadMultipleFiles <- function(nmonth = c("Dec"), nyear = c(2019)) {
-    files_list1 <- list()
-    year <- 1:length(nyear)
-    month <- 1:length(nmonth)
-    totalIterate <<- length(nmonth) * length(nyear)
-
-    for (i in year) {
-        if (length(year) == 1) {
-            for (j in month) {
-            select_files_to_read(nmonth[j], nyear)
-            files_list1[[j]] <- tempfilename
-            names(files_list1)[j] <- xlsname
-            }
-            break
-        }
-        for (j in month) {
-            # browser()
-            select_files_to_read(nmonth[j], nyear[i])
-            files_list1[[j]] <- tempfilename
-            names(files_list1)[j] <- xlsname
-            # browser()
-        }
-        # browser()
-    }
-    files_list <<- files_list1
+     files_list1 <- list()
+     year <- 1:length(nyear)
+     month <- 1:length(nmonth)
+     totalIterate <<- length(nmonth) * length(nyear)
+     
+     for (i in year) {
+          if (length(year) == 1) {
+               for (j in month) {
+                    select_files_to_read(nmonth[j], nyear)
+                    files_list1[[j]] <- tempfilename
+                    names(files_list1)[j] <- xlsname
+               }
+               break
+          }
+          for (j in month) {
+               # browser()
+               select_files_to_read(nmonth[j], nyear[i])
+               files_list1[[j]] <- tempfilename
+               names(files_list1)[j] <- xlsname
+               # browser()
+          }
+          # browser()
+     }
+     files_list <<- files_list1
 }
 ```
 
 After we've defined both functions above, now we're going to use them by setting their arguments in order to load all monthly files in 2018 and 2019. The outputs of below chunk are dataframes of each monthly file.
 
 ```{r}
-loadMultipleFiles(nmonth = c("Dec","Nov","Oct","Sep","Aug","Jul","Jun","May","Apr","Mar","Feb","Jan"))
+loadMultipleFiles(
+  nmonth = c("Dec","Nov","Oct","Sep","Aug","Jul","Jun","May","Apr","Mar","Feb","Jan"),
+  nyear = c(2018))
 
 for (k in 1:totalIterate) {
-    # browser()
-    assign(names(files_list)[k], as.data.frame(files_list[[k]]))
-    # browser()
+     # browser()
+     assign(names(files_list)[k], as.data.frame(files_list[[k]]))
+     # browser()
 }
-rm(files_list, tempfilename)
+
+loadMultipleFiles(
+  nmonth = c("Dec","Nov","Oct","Sep","Aug","Jul","Jun","May","Apr","Mar","Feb","Jan"),
+  nyear = c(2019))
+
+for (k in 1:totalIterate) {
+     # browser()
+     assign(names(files_list)[k], as.data.frame(files_list[[k]]))
+     # browser()
+}
+# rm(files_list, tempfilename)
 ```
 
 ## Combine months DFs into 1 DF (year)
 
-After we've got all monthly dataframe, we should combine them in a single dataframe of year.
+After we've got all monthly dataframes, we should combine them in a single dataframe of year.
 
 ```{r}
 # totalDF <- ls(pattern = "2019")
 
 year2019 <- rbind(Apr2019, Aug2019, Dec2019, Feb2019, Jan2019, Jul2019, Jun2019, Mar2019, May2019, Nov2019, Oct2019, Sep2019)
 
+year2018 <- rbind(Apr2018, Aug2018, Dec2018, Feb2018, Jan2018, Jul2018, Jun2018, Mar2018, May2018, Nov2018, Oct2018, Sep2018)
+
+year20182019 <- rbind(year2018, year2019)
+
+# if you want, you can save the year dataframe as xls file in local directory
 # write.xlsx(year2019, "./datasets/year2019.xlsx")
+# write.xlsx(year2018, "./datasets/year2018.xlsx")
+
+# for ease of use and saving more memory, we need to remove all unnecessary objects
+temp_objects <- ls()
+rm(list = temp_objects[-c(11,19,28,35)])
+rm(temp_objects)
 ```
 
 Yeah! Finally, we've got our prepared data! Let's move on to clean the data.
@@ -271,8 +295,9 @@ Yeah! Finally, we've got our prepared data! Let's move on to clean the data.
 # Data Cleansing {#daclen}
 
 First of all, we need to see the data structure.
+
 ```{r}
-str(year2019)
+str(year20182019)
 ```
 
 Based on the information above, we need to change data type a number of columns. However, before we begin do that, for the sake of convenience, we need to fix two columns' name:
@@ -280,7 +305,7 @@ Based on the information above, we need to change data type a number of columns.
 - "Month" to "Date"
 
 ```{r}
-colnames(year2019) <- c("Metro", "Dimension_Type", "Date", "Dimension", "Measure", "Value", "YoY")
+colnames(year20182019) <- c("Metro", "Dimension_Type", "Date", "Dimension", "Measure", "Value", "YoY")
 ```
 
 Then, referring to the data structure above, all columns' data type are in character data type initially. By using our judgement, we're sure the columns of `Date`, `Value`, and `YoY` should be in date, numeric, and numeric data type respectively. But, for the rest of columns, we have to make sure whether they should be left as they are or be changed to factor data type.
@@ -288,45 +313,49 @@ Then, referring to the data structure above, all columns' data type are in chara
 * `Metro` column
 
 ```{r}
-unique(year2019$Metro)
+unique(year20182019$Metro)
 ```
 
 For `Metro` column, there are 16 unique observations only. Therefore, it will be more easier to handle if we change this column to factor data type.
 
 ```{r}
-year2019$Metro <- as.factor(year2019$Metro)
+year20182019$Metro <- as.factor(year2019$Metro)
 ```
 
 * `Dimension_Type` column
 
 ```{r}
-unique(year2019$Dimension_Type)
+unique(year20182019$Dimension_Type)
 ```
 
 For `Dimension_Type` column, there are 5 unique observations only so that no wonder if we need to change its data type to factor immediately.
 
 ```{r}
-year2019$Dimension_Type <- as.factor(year2019$Dimension_Type)
+year20182019$Dimension_Type <- as.factor(year20182019$Dimension_Type)
 ```
 
 * `Dimension` column
 
 ```{r}
-unique(year2019$Dimension)
+unique(year20182019$Dimension) %>% 
+     kable() %>%
+     kable_styling() %>%
+     scroll_box(width = "500px", height = "200px")
+length(unique(year20182019$Dimension))
 ```
 
-For `Dimension_Type` column, there are 135 unique observations. That's a big number! So, we just leave its data type as it is.
+For `Dimension_Type` column, there 135 unique observations. That's a big number! So, we just leave its data type as it is.
 
 * `Measure` column
 
 ```{r}
-unique(year2019$Measure)
+unique(year20182019$Measure)
 ```
 
 For `Dimension_Type` column, there are 6 unique observations only. So, let's change its data type to factor.
 
 ```{r}
-year2019$Measure <- as.factor(year2019$Measure)
+year20182019$Measure <- as.factor(year20182019$Measure)
 ```
 
 * `Date` column
@@ -334,8 +363,8 @@ year2019$Measure <- as.factor(year2019$Measure)
 While we're sure `Date` column should be in date data type, we still need to arrange its data type. Before we begin, let's take a quick look at the head and tail of such column.
 
 ```{r}
-head(year2019$Date)
-tail(year2019$Date)
+head(year20182019$Date)
+tail(year20182019$Date)
 ```
 
 We saw that the format of the column is in year-month, without date. However, since the total number of rows of the data is 50015, we are not sure yet whether all observations of such column are written in the same format. What if there are some row written in year-month-date or even other format?
@@ -343,7 +372,10 @@ We saw that the format of the column is in year-month, without date. However, si
 To answer this, let's see the column deeper by using `unique()` function.
 
 ```{r}
-unique(year2019$Date)
+unique(year20182019$Date) %>% 
+     kable() %>%
+     kable_styling() %>%
+     scroll_box(width = "500px", height = "200px")
 ```
 
 Bingo! As I told you, there are some with year-month-date format. Therefore, we've got two formats in one column. And since this is annoying, we have to unify all observations to one format only. So, we have two format options: year-month or year-month-date.
@@ -352,15 +384,15 @@ If we were to choose the first option, we will lose other observations' date inf
 
 ```{r}
 isString7Chars <- function(input) {
-    if (nchar(input) == 7) {
-        output <- paste0(input, '-01')
-    } else {
-        output <- input
-    }
+     if (nchar(input) == 7) {
+          output <- paste0(input, '-01')
+     } else {
+          output <- input
+     }
 }
 
-year2019$Date <- as.character(sapply(year2019$Date, isString7Chars)) %>% 
-    ymd()
+year20182019$Date <- as.character(sapply(year20182019$Date, isString7Chars)) %>% 
+     ymd()
 ```
 
 * `Value` column
@@ -368,15 +400,21 @@ year2019$Date <- as.character(sapply(year2019$Date, isString7Chars)) %>%
 We stated earlier that `Value` should be in numeric data type. But, before we start to change its data type, let's take a look of it using `head()`, `tail()`, and `unique()` functions.
 
 ```{r}
-head(year2019$Value)
-tail(year2019$Value)
-unique(year2019$Value)
+head(year20182019$Value)
+tail(year20182019$Value)
+```
+
+```{r}
+unique(year20182019$Value) %>%   
+     kable() %>%
+     kable_styling() %>%
+     scroll_box(width = "500px", height = "200px")
 ```
 
 We can see that in general there are two formats: those with `$` sign and those without one. So, before we jump to data type change, we have to accomplish those two. In order to assign `Value` column to be in numeric data type, we have to remove the `$` sign so that we can use the following codes.
 
 ```{r}
-year2019$Value <- sapply(year2019$Value, function(x) as.numeric(gsub("[,$]", "", x)))
+year20182019$Value <- sapply(year20182019$Value, function(x) as.numeric(gsub("[,$]", "", x)))
 ```
 
 * `YoY` column
@@ -384,9 +422,15 @@ year2019$Value <- sapply(year2019$Value, function(x) as.numeric(gsub("[,$]", "",
 For this column, we can perform the steps as `Value` column in order to check the data format.
 
 ```{r}
-head(year2019$YoY)
-tail(year2019$YoY)
-unique(year2019$YoY)
+head(year20182019$YoY)
+tail(year20182019$YoY)
+```
+
+```{r}
+unique(year20182019$YoY) %>%   
+     kable() %>%
+     kable_styling() %>%
+     scroll_box(width = "500px", height = "200px")
 ```
 
 We saw that in general there are 4 formats:
@@ -400,13 +444,13 @@ The `%` sign indicates percentage (1/100), whereas the `-` means negative number
 Using the above idea, we can change the column data type to numeric and format it in 1/100 format (not in `%` symbol).
 
 ```{r}
-year2019$YoY <- sapply(year2019$YoY, function(x) as.numeric(gsub("[%]", "", x)))/100
+year20182019$YoY <- sapply(year20182019$YoY, function(x) as.numeric(gsub("[%]", "", x)))/100
 ```
 
 Well done! We have adjusted all columns' format. So, now let's check it the data out to convince ourself that we did well.
 
 ```{r}
-head(year2019)
+head(year20182019)
 ```
 
 Alright. All columns have been in appropriate data type. For the next step, let's move on to the next section below.
@@ -420,19 +464,19 @@ As our data is too complicated to infer directly from one table, it will be more
 This subtable consists of median salary and YoY for each job title in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Job Title"`.
 
 ```{r}
-Salary_Jobs <- year2019 %>% 
-    filter(Dimension_Type == "Job Title") %>% 
-    select(Metro, Date, Dimension, Value, YoY)
+Salary_Jobs <- year20182019 %>% 
+     filter(Dimension_Type == "Job Title") %>% 
+     select(Metro, Date, Dimension, Value, YoY)
 colnames(Salary_Jobs) <- c("Area","Date","Job_Title", "Salary", "YoY")
-Salary_Jobs
+head(Salary_Jobs)
 ```
 
 Great! We've got what we desired. Now, check if there is any NA in our new table.
 
 ```{r}
 Salary_Jobs %>% 
-    is.na() %>% 
-    colSums()
+     is.na() %>% 
+     colSums()
 ```
 
 Wow! It's really clean! We have zero number of NA. As we have new table, it's gonna be better if we assign `Job Title` column data type to factor because job titles are just an iteration for each area and date.
@@ -440,7 +484,6 @@ Wow! It's really clean! We have zero number of NA. As we have new table, it's go
 ```{r}
 Salary_Jobs$Job_Title <- as.factor(Salary_Jobs$Job_Title)
 levels(Salary_Jobs$Job_Title)
-Salary_Jobs
 ```
 
 ## Create a Table "Salary for each sector"
@@ -448,19 +491,19 @@ Salary_Jobs
 This subtable consists of median salary for each sector in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Industry"` and `Measure` of `"Median Base Pay"`.
 
 ```{r}
-Salary_Sectors <- year2019 %>% 
-    filter(Dimension_Type == "Industry" & Measure == "Median Base Pay") %>% 
-    select(Metro, Date, Dimension, Value)
+Salary_Sectors <- year20182019 %>% 
+     filter(Dimension_Type == "Industry" & Measure == "Median Base Pay") %>% 
+     select(Metro, Date, Dimension, Value)
 colnames(Salary_Sectors) <- c("Area","Date","Sector", "Salary")
-Salary_Sectors
+head(Salary_Sectors)
 ```
 
 Next, we're going to check its NA value.
 
 ```{r}
 Salary_Sectors %>% 
-    is.na() %>% 
-    colSums()
+     is.na() %>% 
+     colSums()
 ```
 
 And wow again! No NA value found. As we have new table, it's gonna be better if we assign `Sector` column data type to factor because sectors are just an iteration for each area and date.
@@ -468,7 +511,6 @@ And wow again! No NA value found. As we have new table, it's gonna be better if 
 ```{r}
 Salary_Sectors$Sector <- as.factor(Salary_Sectors$Sector)
 levels(Salary_Sectors$Sector)
-Salary_Sectors
 ```
 
 ## Create a Table "Salary for each company size"
@@ -476,19 +518,19 @@ Salary_Sectors
 This subtable consists of median salary for each company size in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Company Size"` and `Measure` of `"Median Base Pay"`.
 
 ```{r}
-Salary_CompanySize <- year2019 %>% 
-    filter(Dimension_Type == "Company Size" & Measure == "Median Base Pay") %>% 
-    select(Metro, Date, Dimension, Value)
+Salary_CompanySize <- year20182019 %>% 
+     filter(Dimension_Type == "Company Size" & Measure == "Median Base Pay") %>% 
+     select(Metro, Date, Dimension, Value)
 colnames(Salary_CompanySize) <- c("Area","Date","Company_Size", "Salary")
-Salary_CompanySize
+head(Salary_CompanySize)
 ```
 
 Next, we're going to check its NA value.
 
 ```{r}
 Salary_CompanySize %>% 
-    is.na() %>% 
-    colSums()
+     is.na() %>% 
+     colSums()
 ```
 
 And wow again! No NA value found. As we have new table, it's gonna be better if we assign `Company_Size` column data type to factor because company sizes are just an iteration for each area and date.
@@ -496,7 +538,6 @@ And wow again! No NA value found. As we have new table, it's gonna be better if 
 ```{r}
 Salary_CompanySize$Company_Size <- as.factor(Salary_CompanySize$Company_Size)
 levels(Salary_CompanySize$Company_Size)
-Salary_CompanySize
 ```
 
 ## Create a Table "Job openings for each sector"
@@ -504,19 +545,19 @@ Salary_CompanySize
 This subtable consists of number of job openings and its YoY for each sector in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Industry"` and `Measure` of `"Job Openings"`.
 
 ```{r}
-JobOpening_Sectors <- year2019 %>% 
-    filter(Dimension_Type == "Industry" & Measure == "Job Openings") %>% 
-    select(Metro, Date, Dimension, Value, YoY)
+JobOpening_Sectors <- year20182019 %>% 
+     filter(Dimension_Type == "Industry" & Measure == "Job Openings") %>% 
+     select(Metro, Date, Dimension, Value, YoY)
 colnames(JobOpening_Sectors) <- c("Area","Date","Sector", "Openings", "YoY")
-JobOpening_Sectors
+head(JobOpening_Sectors)
 ```
 
 And now, we check its NA value.
 
 ```{r}
 JobOpening_Sectors %>% 
-    is.na() %>% 
-    colSums()
+     is.na() %>% 
+     colSums()
 ```
 
 Cool! No NA found. As we have new table, it's gonna be better if we assign `Sector` column data type to factor because sectors are just an iteration for each area and date.
@@ -524,7 +565,6 @@ Cool! No NA found. As we have new table, it's gonna be better if we assign `Sect
 ```{r}
 JobOpening_Sectors$Sector <- as.factor(JobOpening_Sectors$Sector)
 levels(JobOpening_Sectors$Sector)
-JobOpening_Sectors
 ```
 
 ## Create a Table "Job openings for each company size"
@@ -532,21 +572,22 @@ JobOpening_Sectors
 This subtable consists of number of job openings and its YoY for each company size in a given specific metro area and on a specific date. To create it, we extract some columns from our main data. We're only interested in `Dimension_Type` of `"Company Size"` and `Measure` of `"Job Openings"`.
 
 ```{r}
-JobOpening_CompanySize <- year2019 %>% 
-    filter(Dimension_Type == "Company Size" & Measure == "Job Openings") %>% 
-    select(Metro, Date, Dimension, Value, YoY)
+JobOpening_CompanySize <- year20182019 %>% 
+     filter(Dimension_Type == "Company Size" & Measure == "Job Openings") %>% 
+     select(Metro, Date, Dimension, Value, YoY)
 colnames(JobOpening_CompanySize) <- c("Area","Date","Company_Size", "Openings", "YoY")
-JobOpening_CompanySize
+head(JobOpening_CompanySize)
 ```
 
 Let's check its NA value.
 
 ```{r}
 JobOpening_CompanySize %>% 
-    is.na() %>% 
-    colSums()
+     is.na() %>% 
+     colSums()
 ```
-Crap! There are 88 NAs. First, let's check such column with 88 NAs.
+
+Oh, crap! There are 88 NAs. First, let's check such column with 88 NAs.
 
 ```{r}
 unique(JobOpening_CompanySize$Company_Size)
@@ -563,8 +604,8 @@ Now, let's recheck the NA and "Other" values.
 
 ```{r}
 JobOpening_CompanySize %>% 
-    is.na() %>% 
-    colSums()
+     is.na() %>% 
+     colSums()
 levels(JobOpening_CompanySize$Company_Size)
 ```
 
@@ -572,13 +613,13 @@ Great! All clean, without any NA and "Other" value anymore.
 
 ## Create a Table "Quick facts"
 
-This subtable contains Median Pay and Job Openings data from Glassdoor and US BLS (Bureau of Labor Statistics) for each area.
+This subtable contains Median Pay and Job Openings data from Glassdoor and US [BLS](https://www.bls.gov/) (Bureau of Labor Statistics) for each area.
 
 ```{r}
-QuickFacts <- year2019 %>% 
-    filter(Dimension_Type == "Quick Facts") %>% 
-    select(Metro, Date, Dimension, Value, YoY) %>% 
-    pivot_wider(names_from = Dimension, values_from = c(Value, YoY))
+QuickFacts <- year20182019 %>% 
+     filter(Dimension_Type == "Quick Facts") %>% 
+     select(Metro, Date, Dimension, Value, YoY) %>% 
+     pivot_wider(names_from = Dimension, values_from = c(Value, YoY))
 QuickFacts <- as.data.frame(cbind(QuickFacts$Metro,
                                   QuickFacts$Date,
                                   QuickFacts$`Value_Metro Median Pay`,
@@ -590,36 +631,108 @@ QuickFacts <- as.data.frame(cbind(QuickFacts$Metro,
                                   QuickFacts$`YoY_Metro Job Openings`,
                                   QuickFacts$`YoY_U.S. Job Openings`))
 colnames(QuickFacts) <- c("Area","Date","Metro_Median_Pay", "US_Median_Pay",
-                            "Metro_JobOpenings","US_JobOpenings","YoY_Metro_Median_Pay",
-                            "YoY_US_Median_Pay","YoY_Metro_JobOpenings","YoY_US_JobOpenings")
+                          "Metro_JobOpenings","US_JobOpenings","YoY_Metro_Median_Pay",
+                          "YoY_US_Median_Pay","YoY_Metro_JobOpenings","YoY_US_JobOpenings")
 ```
 
 ## Create a Table "Time Series"
 
-This subtable consists of 
-
-Let's make sure that `YoY` column when `Dimension_Type == "Timeseries"` is completely NA.
+This subtable comes from `Timeseries` column in the main dataframe. It's going to have data of median salary and job openings in certain time interval. But, it doesn't have `YoY` column. But, before we decide that we won't use `YoY` column, let's make sure such column when `Dimension_Type == "Timeseries"` is completely NA.
 
 ```{r}
-year2019 %>% 
-    filter(Dimension_Type == "Timeseries") %>% 
-    nrow()
-year2019 %>% 
-    filter(Dimension_Type == "Timeseries") %>% 
-    is.na() %>% 
-    colSums()
+year20182019 %>% 
+     filter(Dimension_Type == "Timeseries") %>% 
+     nrow()
+year20182019 %>% 
+     filter(Dimension_Type == "Timeseries") %>% 
+     is.na() %>% 
+     colSums()
 ```
+
+Nice! We have 28292 rows and also 28292 NAs in `YoY` column. So, we are 100% sure that we have to remove the column.
+
+As this Time Series subtable comprises median salary and job openings, it will be more convenient if we split it into two smaller dataframe.
+
+* Time Series for Job Openings
 
 ```{r}
-# TimeSeries <- year2019 %>% 
-#     filter(Dimension_Type == "Timeseries") %>% 
-#     select(Metro, Year_Month, Dimension, as.numeric(Value)) %>% 
-#     pivot_wider(names_from = Dimension, values_from = Value)
-#     select(Metro, Year_Month, )
+TimeSeries_JobOpenings <- year20182019 %>% 
+  filter(Dimension_Type == "Timeseries" & Dimension == "Job Openings") %>%
+  select(Metro, Date, Value) %>% 
+  group_by(Metro, Date) %>% 
+  summarise(Job_Openings = mean(Value)) %>% 
+  ungroup()
+head(TimeSeries_JobOpenings)
 ```
 
-# Plotting {#plot}
+Whoops! We found some NAs. We don't want this. Let's check the number of NAs then remove all.
 
-# Inference {#infer}
+```{r}
+TimeSeries_JobOpenings %>% 
+  is.na() %>% 
+  colSums()
+
+print(paste0("The number of dataframe rows is ", nrow(TimeSeries_JobOpenings)))
+```
+
+Well, there are 66 NAs only. Not a big number yet if compared to the dataframe rows which is 3432. Therefore, just erase them all.
+
+```{r}
+TimeSeries_JobOpenings <- drop_na(TimeSeries_JobOpenings)
+```
+
+* Time Series for Median Salary
+
+```{r}
+TimeSeries_Salary <- year20182019 %>% 
+  filter(Dimension_Type == "Timeseries" & Dimension == "Metro Median Base Pay") %>%
+  select(Metro, Date, Value) %>% 
+  group_by(Metro, Date) %>% 
+  summarise(Salary = mean(Value)) %>% 
+  ungroup()
+head(TimeSeries_Salary)
+```
+
+Though we don't see any NA value, it's not a bad idea if we check the dataframe.
+
+```{r}
+TimeSeries_Salary %>% 
+  is.na() %>% 
+  colSums()
+
+print(paste0("The number of dataframe rows is ", nrow(TimeSeries_Salary)))
+```
+
+Great! No NA at all!
+
+And now, we have all transformed the data and are ready for the next section to plot all necessary data.
+
+# Analysis {#analys}
+
+Finally, we arrive in this section. Here, we're going to answer all questions defined in [Introduction](#intro). So, let's get it started.
+
+1. What is the job title paid the most in each area in every given year?
+
+In order to answer this question, we need `Salary_Jobs` dataframe.
+
+```{r}
+levels(Salary_Jobs$Area)
+
+for (i in levels(Salary_Jobs$Area)) {
+  
+  for (j in levels(Salary_Jobs$Job_Title)) {
+    a <- Salary_Jobs[Salary_Jobs$Area == i & Salary_Jobs$Job_Title == j,]
+    b <- aggregate(formula = Salary ~ Area + Job_Title, data = Atlanta, FUN = mean)
+  }
+  
+}
+
+
+
+  
+aggregate(formula = Salary ~ Area + Job_Title, data = Atlanta, FUN = mean)
+
+aggregate()
+```
 
 # Conclusions {#concl}
