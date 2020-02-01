@@ -20,6 +20,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction {#intro}
 
+## Background
+
 This article aims to meet the first LBB (Learn by Building) assignment from Algoritma, i.e. [Programming for Data Science](https://algorit.ma/course/programming-data-science/). In this article, you could expect to find the following sections:
 
 * Introduction of the article can be found in [Introduction](#intro)
@@ -34,7 +36,10 @@ Here, I intend to employ data from Glassdoor regarding job market in the US. You
 
 I publish this article on [RPubs](), but you can find the codes on [GitHub](https://github.com/utomoreza/P4DS_LBB). Feel free to use or clone it.
 
+## Research Questions
+
 By arranging this article, I'm going to answer several questions as follows:
+
 1. What is the job title paid the most in each area in every given year?
 2. Which top 5 sectors do pay salary the most in Boston every year?
 3. Is it true that a company with more than 5000 employees in San Fransisco pays its employees' salary higher than a startup (a company with employees less than 200) in NYC? Show the data in every year!
@@ -420,11 +425,31 @@ Excellent! All data clean! Then, now let's move on to set the data type of each 
 unique(DF$Metro)
 ```
 
-For `Metro` column, there are 16 unique observations only. Therefore, it will be more easier to handle if we change this column to factor data type.
+For `Metro` column, there are 16 unique observations only. However, if you see it more closely, there are some areas with the same meaning bu in slight different typing. Therefore, it will be more easier to handle if we tackle with this problem and change this column to factor data type.
 
 ```{r}
-DF$Metro <- as.factor(DF$Metro)
+DF$Metro <- as.factor(sapply(as.character(DF$Metro), switch, 
+                           "National" = "National",
+                           "Atlanta" = "Atlanta", 
+                           "New York City" = "New York City", 
+                           "Los Angeles" = "Los Angeles", 
+                           "Philadelphia" = "Philadelphia",
+                           "Houston" = "Houston", 
+                           "Seattle" = "Seattle", 
+                           "San Francisco" = "San Francisco", 
+                           "Chicago" = "Chicago",
+                           "Boston" = "Boston", 
+                           "Washington DC" = "Washington DC",
+                           "U.S." = "National", 
+                           "New-York-City" = "New York City",
+                           "Los-Angeles" = "Los Angeles", 
+                           "San-Francisco" = "San Francisco",
+                           "Washington-DC" = "Washington DC"))
+
+levels(DF$Metro)
 ```
+
+Great! We've solved the problem and changed the data type of `Metro` column.
 
 * `Dimension_Type` column
 
@@ -711,31 +736,31 @@ head(TimeSeries_JobOpenings)
 is.na(TimeSeries_JobOpenings) %>% colSums()
 ```
 
+Cool! Nothing wrong happens. Let's move on to Time Series for Median Salary.
+
 * Time Series for Median Salary
 
 ```{r}
-# TimeSeries_Salary <- DF %>% 
-#   filter(Dimension_Type == "Timeseries" & Dimension == "Metro Median Base Pay") %>%
-#   select(Metro, Date, Value) %>% 
-#   group_by(Metro, Date) %>% 
-#   summarise(Salary = mean(Value)) %>% 
-#   ungroup()
-# head(TimeSeries_Salary)
+TimeSeries_Salary <- DF %>%
+  filter(Dimension_Type == "Timeseries" & Dimension == "Metro Median Base Pay") %>%
+  select(Metro, Date, Value) %>%
+  group_by(Metro, Date) %>%
+  summarise(Salary = mean(Value)) %>%
+  ungroup()
+head(TimeSeries_Salary)
 ```
 
 Though we don't see any NA value, it's not a bad idea if we check the dataframe.
 
 ```{r}
-# TimeSeries_Salary %>% 
-#   is.na() %>% 
-#   colSums()
-# 
-# print(paste0("The number of dataframe rows is ", nrow(TimeSeries_Salary)))
+TimeSeries_Salary %>%
+  is.na() %>%
+  colSums()
 ```
 
 Great! No NA at all!
 
-And now, we have all transformed the data and are ready for the next section to plot all necessary data.
+And now, we have all transformed the data and are ready for the next section to analyze the data.
 
 # Analysis {#analys}
 
@@ -743,26 +768,104 @@ Finally, we arrive in this section. Here, we're going to answer all questions de
 
 1. What is the job title paid the most in each area in every given year?
 
-In order to answer this question, we need `Salary_Jobs` dataframe.
+In order to answer this question, we need `Salary_Jobs` dataframe. Afterwards, we filter the data by its each year and each area. Next, for all rows filtered, calculate mean of salary for each job title in 12 months for each year, and then find the max salary from all averaged salary of job titles. The codes to perform these steps can be find below. Firstly, I create a function.
 
 ```{r}
-# levels(Salary_Jobs$Area)
-# 
-# for (i in levels(Salary_Jobs$Area)) {
-#   
-#   for (j in levels(Salary_Jobs$Job_Title)) {
-#     a <- Salary_Jobs[Salary_Jobs$Area == i & Salary_Jobs$Job_Title == j,]
-#     b <- aggregate(formula = Salary ~ Area + Job_Title, data = Atlanta, FUN = mean)
-#   }
-#   
-# }
-# 
-# 
-# 
-#   
-# aggregate(formula = Salary ~ Area + Job_Title, data = Atlanta, FUN = mean)
-# 
-# aggregate()
+Q1_func <- function(year) {
+  Q1 <- Salary_Jobs[year(Salary_Jobs$Date) == year,]
+  
+  maxPay_eachArea <- vector()
+  maxTitle_eachArea <- vector()
+  # browser()
+  areas <- levels(Q1$Area)
+  for (area in areas) {
+    temp <- Q1[Q1$Area == area,]
+    # temp <- temp[order(temp$Job_Title, decreasing = TRUE),]
+    
+    avg <- vector()
+    titles <- vector()
+    # browser()
+    
+    jobs <- levels(temp$Job_Title)
+    for (job in jobs) {
+      avg_buffer <- round(mean(temp[temp$Job_Title == job, "Salary"]))
+      avg <- c(avg, avg_buffer)
+      titles <- c(titles, job)
+      # browser()
+    }
+    
+    # for (i in 1:3) {
+    #   max_pay <- max(avg)
+    #   max_title <- titles[which.max(avg)]
+    #   avg <- avg[-c(which.max(avg))]
+    #   
+    #   top3pay <- c()
+    # }
+    
+    browser()
+    max_pay <- max(avg)
+    max_title <- titles[which.max(avg)]
+    avg <- avg[-c(which.max(avg))]
+    
+    # top3pay <- tail(sort())
+    browser()
+    maxPay_eachArea <- c(maxPay_eachArea, max_pay)
+    maxTitle_eachArea <- c(maxTitle_eachArea, max_title)
+    browser()
+  }
+  
+  browser()
+  Q1_ans <- as.data.frame(cbind(Area = areas,
+                              Job_Title = maxTitle_eachArea, 
+                              Salary = maxPay_eachArea))
+return(Q1_ans)
+}
 ```
+
+By using above function, we can find highest paid job for each area every year.
+
+  + The highest paid job in 2018
+```{r}
+Q1_func(2018)
+```
+
++ The highest paid job in 2019
+```{r}
+Q1_func(2019)
+```
+
+```{r}
+levels(Salary_Jobs$Area)
+
+for (i in levels(Salary_Jobs$Area)) {
+
+  for (j in levels(Salary_Jobs$Job_Title)) {
+    a <- Salary_Jobs[Salary_Jobs$Area == i & Salary_Jobs$Job_Title == j,]
+    b <- aggregate(formula = Salary ~ Area + Job_Title, data = Atlanta, FUN = mean)
+  }
+
+}
+
+
+
+
+aggregate(formula = Salary ~ Area + Job_Title, data = Atlanta, FUN = mean)
+
+aggregate()
+```
+
+2. Which top 5 sectors do pay salary the most in Boston every year?
+
+
+
+3. Is it true that a company with more than 5000 employees in San Fransisco pays its employees' salary higher than a startup (a company with employees less than 200) in NYC? Show the data in every year!
+
+
+
+4. What is the trend of Data Scientist job role's salary and need in each area and in the entire US?
+
+
+
+5. Does Physician still become the highest paid job role nationally?
 
 # Conclusions {#concl}
