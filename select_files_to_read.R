@@ -1,9 +1,7 @@
-select_files_to_read <- function(month = "Dec", year = 2019) {
+select_files_to_read <-
+function(month = "Dec", year = 2019) {
     load("filespath.RData")
-    
-    # month_label <- c("Dec","Nov","Oct","Sep","Aug","Jul","Jun","May","Apr","Mar","Feb","Jan")
-    # month_num <- 1:12
-    
+
     if (month == "Dec") {
         month_num = 1
     } else if (month == "Nov") {
@@ -29,31 +27,22 @@ select_files_to_read <- function(month = "Dec", year = 2019) {
     } else {
         month_num = 12
     }
-    
-    # month_iterate <- as.numeric(1:length(month))
-    
-    # year_iterate <- as.numeric(1:length(year))
-    
+
     files <- list("2019" = filespath[1:12],
                   "2018" = filespath[13:24],
                   "2017" = filespath[25:36],
                   "2016" = filespath[37:39])
-    # browser()
-    
+
     if (year == 2016) {
-        # browser()
         yearOrder <- 4
         if (month == "Dec" | month == "Nov" | month == "Oct") {
             xlsname <<- paste0(month, year)
             year_char <- as.character(year)
             tempfilename <<- as.data.frame(read_xlsx(files[[yearOrder]][month_num]))
-            # mv(from = "tempfilename", to = xlsname)
-            # myexport(get(xlsname))
         } else {
             stop("Year 2016 have Dec, Nov and Oct files only.")
         }
     } else {
-        # browser()
         xlsname <<- paste0(month, year)
         if (year == 2019) {
             yearOrder <- 1
@@ -62,11 +51,6 @@ select_files_to_read <- function(month = "Dec", year = 2019) {
         } else {
             yearOrder <- 3
         }
-        
-        # browser()
         tempfilename <<- as.data.frame(read_xlsx(files[[yearOrder]][month_num]))
-        # mv(from = "tempfilename", to = xlsname)
-        # myexport(get(xlsname))
-        # browser()
     }
 }

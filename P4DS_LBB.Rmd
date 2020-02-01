@@ -271,7 +271,7 @@ year20182019 <- rbind(year2018, year2019)
 
 # for ease of use and saving more memory, we need to remove all unnecessary objects
 temp_objects <- ls()
-rm(list = temp_objects[-c(11,19,28,35)])
+rm(list = temp_objects[!temp_objects %in% c("year20182019")])
 rm(temp_objects)
 ```
 
@@ -476,10 +476,10 @@ tail(DF$Date)
 
 We saw that the format of the column is in year-month, without date. However, since the total number of rows of the data is 50015, we are not sure yet whether all observations of such column are written in the same format. What if there are some row written in year-month-date or even other format?
 
-To answer this, let's see the column deeper by using `View()` function. We're not going to use `unique()` as we're sure it will produce incredibly long lines and that will crash our R markdown article.
+To answer this, let's see the column deeper by using `unique()`.
 
 ```{r}
-View(DF$Date)
+as.data.frame(unique(DF$Date))
 ```
 
 Bingo! As I told you, there are some with year-month-date format. Therefore, we've got two formats in one column. And since this is annoying, we have to unify all observations to one format only. So, we have two format options: year-month or year-month-date.
