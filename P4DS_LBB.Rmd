@@ -32,9 +32,9 @@ This article aims to meet the first LBB (Learn by Building) assignment from Algo
 * Discussion about answering the pre-defined questions is described in [Analysis](#analys)
 * Conclusions of the article can be read in [Conclusions](#concl)
 
-Here, I intend to employ data from Glassdoor regarding job market in the US. You can find the web page [here](https://www.glassdoor.com/research/job-market-report-historical/). Also, Glassdoor has its visualizations on the data as shown [here](https://www.glassdoor.com/research/job-market-report/).
+Here, I intend to employ data from Glassdoor regarding job market in the US. You can find the web page [here](https://www.glassdoor.com/research/job-market-report-historical/). Also, Glassdoor has the visualizations for the data as shown [here](https://www.glassdoor.com/research/job-market-report/).
 
-I publish this article on [RPubs](), but you can find the codes on [GitHub](https://github.com/utomoreza/P4DS_LBB). Feel free to use or clone it.
+I published this article on [GitHub Page](https://utomoreza.github.io/P4DS_LBB/) and [RPubs](https://rpubs.com/utomoreza/P4DS_LBB), but you can find the codes on [GitHub](https://github.com/utomoreza/P4DS_LBB). Feel free to use or clone it.
 
 ## Research Questions
 
@@ -49,19 +49,19 @@ By arranging this article, I'm going to answer several questions as follows:
 # Dataset {#daset}
 
 The data are compiled monthly by Glassdoor from 2016. Each monthly datum is in .xlsx extension file. The columns of each of it consist of:
-+ Metro
+  - Metro
 Some metropolitan areas in the US. The National value indicates data from national area.
-+ Dimension Type
+  - Dimension Type
 Type of data we want, e.g. Quick Facts (facts about median salary and job openings), Industry (sectors of the jobs), and so on.
-+ Month
+  - Month
 The time format of the data.
-+ Dimension
+  - Dimension
 This is the derivative of Dimension Type column. All options here depend on Dimension Type.
-+ Measure
+  - Measure
 This column determines what method of measurement used.
-+ Value
+  - Value
 Depending on Dimension Type and Dimension columns you chose, this Value column contains either median salary or number of job openings. The value with '$' (dollar) sign indicates salary in USD.
-+ YoY:
+  - YoY:
 Year over year in percent. For more information about how to understand and calculate YoY, you can read this [article](https://www.sisense.com/blog/calculate-year-year-growth/) I found really helpful. However, in this article, I won't highlight this YoY feature.
 
 Below is a quick look of the data in spreadsheet application.
