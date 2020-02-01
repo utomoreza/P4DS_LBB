@@ -48,19 +48,33 @@ By arranging this article, I'm going to answer several questions as follows:
 # Dataset {#daset}
 
 The data are compiled monthly by Glassdoor from 2016. Each monthly datum is in .xlsx extension file. The columns of each of it consist of:
-  * Metro
+
+* Metro
+
 Some metropolitan areas in the US. The National value indicates data from national area.
-  * Dimension Type
+
+* Dimension Type
+
 Type of data we want, e.g. Quick Facts (facts about median salary and job openings), Industry (sectors of the jobs), and so on.
-  * Month
+
+* Month
+
 The time format of the data.
-  * Dimension
+
+* Dimension
+
 This is the derivative of Dimension Type column. All options here depend on Dimension Type.
-  * Measure
+
+* Measure
+
 This column determines what method of measurement used.
-  * Value
+
+* Value
+
 Depending on Dimension Type and Dimension columns you chose, this Value column contains either median salary or number of job openings. The value with '$' (dollar) sign indicates salary in USD.
-  * YoY:
+
+* YoY
+
 Year over year in percent. For more information about how to understand and calculate YoY, you can read this [article](https://www.sisense.com/blog/calculate-year-year-growth/) I found really helpful. However, in this article, I won't highlight this YoY feature.
 
 Below is a quick look of the data in spreadsheet application.
