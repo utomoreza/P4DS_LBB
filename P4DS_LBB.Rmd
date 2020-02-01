@@ -127,97 +127,80 @@ The code chunk below is used to check whether we've had the xlsx files already i
 ```{r, warning=FALSE, results='hide'}
 load("filespath.RData")
 
-# checkIfFilesExist <- function(filespath){
-#      if (!file.exists(filespath)) {
-#           get_xls_file_from_html()
-#      }
-# }
-
-# check_if_fileexist <- function(){
-#     if (!file.exists(filespath)) {
-#         get_xls_file_from_html
-#     }
-# }
-
-# mapply(check_if_fileexist)
+checkIfFilesExist <- function(path){
+  if (!file.exists(path)) {
+    get_xls_file_from_html()
+  }
+}
 ```
 
 ## Load the Data into RStudio
 
-In order to load each monthly xlsx file into RStudio, we define a function `select_files_to_read()` and save it in local directory as `select_files_to_read.R` as shown in below chunk. Since I have save the function earlier, I have to make the function listing codes in comment lines.
+In order to load each monthly xlsx file into RStudio, we define a function `select_files_to_read()`.
 
 ```{r}
-# select_files_to_read <- function(month = "Dec", year = 2019) {
-#     load("filespath.RData")
-#     
-#     if (month == "Dec") {
-#         month_num = 1
-#     } else if (month == "Nov") {
-#         month_num = 2
-#     } else if (month == "Oct") {
-#         month_num = 3
-#     } else if (month == "Sep") {
-#         month_num = 4
-#     } else if (month == "Aug") {
-#         month_num = 5
-#     } else if (month == "Jul") {
-#         month_num = 6
-#     } else if (month == "Jun") {
-#         month_num = 7
-#     } else if (month == "May") {
-#         month_num = 8
-#     } else if (month == "Apr") {
-#         month_num = 9
-#     } else if (month == "Mar") {
-#         month_num = 10
-#     } else if (month == "Feb") {
-#         month_num = 11
-#     } else {
-#         month_num = 12
-#     }
-#     
-#     files <- list("2019" = filespath[1:12],
-#                   "2018" = filespath[13:24],
-#                   "2017" = filespath[25:36],
-#                   "2016" = filespath[37:39])
-#     
-#     if (year == 2016) {
-#         yearOrder <- 4
-#         if (month == "Dec" | month == "Nov" | month == "Oct") {
-#             xlsname <<- paste0(month, year)
-#             year_char <- as.character(year)
-#             tempfilename <<- as.data.frame(read_xlsx(files[[yearOrder]][month_num]))
-#         } else {
-#             stop("Year 2016 have Dec, Nov and Oct files only.")
-#         }
-#     } else {
-#         xlsname <<- paste0(month, year)
-#         if (year == 2019) {
-#             yearOrder <- 1
-#         } else if (year == 2018) {
-#             yearOrder <- 2
-#         } else {
-#             yearOrder <- 3
-#         }
-#         tempfilename <<- as.data.frame(read_xlsx(files[[yearOrder]][month_num]))
-#     }
-# }
-# 
-# dump("select_files_to_read", file = "select_files_to_read.R")
+select_files_to_read <- function(month = "Dec", year = 2019) {
+    load("filespath.RData")
+
+    if (month == "Dec") {
+        month_num = 1
+    } else if (month == "Nov") {
+        month_num = 2
+    } else if (month == "Oct") {
+        month_num = 3
+    } else if (month == "Sep") {
+        month_num = 4
+    } else if (month == "Aug") {
+        month_num = 5
+    } else if (month == "Jul") {
+        month_num = 6
+    } else if (month == "Jun") {
+        month_num = 7
+    } else if (month == "May") {
+        month_num = 8
+    } else if (month == "Apr") {
+        month_num = 9
+    } else if (month == "Mar") {
+        month_num = 10
+    } else if (month == "Feb") {
+        month_num = 11
+    } else {
+        month_num = 12
+    }
+
+    files <- list("2019" = filespath[1:12],
+                  "2018" = filespath[13:24],
+                  "2017" = filespath[25:36],
+                  "2016" = filespath[37:39])
+
+    if (year == 2016) {
+        yearOrder <- 4
+        if (month == "Dec" | month == "Nov" | month == "Oct") {
+            xlsname <<- paste0(month, year)
+            year_char <- as.character(year)
+            tempfilename <<- as.data.frame(read_xlsx(files[[yearOrder]][month_num]))
+        } else {
+            stop("Year 2016 have Dec, Nov and Oct files only.")
+        }
+    } else {
+        xlsname <<- paste0(month, year)
+        if (year == 2019) {
+            yearOrder <- 1
+        } else if (year == 2018) {
+            yearOrder <- 2
+        } else {
+            yearOrder <- 3
+        }
+        tempfilename <<- as.data.frame(read_xlsx(files[[yearOrder]][month_num]))
+    }
+}
+
+dump("select_files_to_read", file = "select_files_to_read.R")
 ```
 
 And now call the `select_files_to_read()` then insert it into another function `loadMultipleFiles()`. The latter works to iterate `select_files_to_read()` function in specified number of years fully.
 
 ```{r}
-source("select_files_to_read.R")
-# select_files_to_read("Dec", 2019)
-
-# myexport <- function(...) {
-#     arg.list <- list(...)
-#     names <- all.names(match.call())[-1]
-#     for (i in seq_along(names)) assign(names[i],arg.list[[i]],.GlobalEnv)
-# }
-
 loadMultipleFiles <- function(nmonth = c("Dec"), nyear = c(2019)) {
      files_list1 <- list()
      year <- 1:length(nyear)
@@ -234,13 +217,13 @@ loadMultipleFiles <- function(nmonth = c("Dec"), nyear = c(2019)) {
                break
           }
           for (j in month) {
-               # browser()
+               
                select_files_to_read(nmonth[j], nyear[i])
                files_list1[[j]] <- tempfilename
                names(files_list1)[j] <- xlsname
-               # browser()
+               
           }
-          # browser()
+          
      }
      files_list <<- files_list1
 }
@@ -254,9 +237,9 @@ loadMultipleFiles(
   nyear = c(2018))
 
 for (k in 1:totalIterate) {
-     # browser()
+     
      assign(names(files_list)[k], as.data.frame(files_list[[k]]))
-     # browser()
+     
 }
 
 loadMultipleFiles(
@@ -264,11 +247,10 @@ loadMultipleFiles(
   nyear = c(2019))
 
 for (k in 1:totalIterate) {
-     # browser()
+     
      assign(names(files_list)[k], as.data.frame(files_list[[k]]))
-     # browser()
+     
 }
-# rm(files_list, tempfilename)
 ```
 
 ## Combine months DFs into 1 DF (year)
@@ -276,15 +258,13 @@ for (k in 1:totalIterate) {
 After we've got all monthly dataframes, we should combine them in a single dataframe of year.
 
 ```{r}
-# totalDF <- ls(pattern = "2019")
-
 year2019 <- rbind(Apr2019, Aug2019, Dec2019, Feb2019, Jan2019, Jul2019, Jun2019, Mar2019, May2019, Nov2019, Oct2019, Sep2019)
 
 year2018 <- rbind(Apr2018, Aug2018, Dec2018, Feb2018, Jan2018, Jul2018, Jun2018, Mar2018, May2018, Nov2018, Oct2018, Sep2018)
 
 year20182019 <- rbind(year2018, year2019)
 
-# if you want, you can save the year dataframe as xls file in local directory
+## if you want, you can save the year dataframe as xls file in local directory
 # write.xlsx(year2019, "./datasets/year2019.xlsx")
 # write.xlsx(year2018, "./datasets/year2018.xlsx")
 # write.xlsx(year20182019, "./datasets/year2018-2019.xlsx")
@@ -418,6 +398,8 @@ is.na(DF) %>% colSums()
 
 Excellent! All data clean! Then, now let's move on to set the data type of each column.
 
+## Change Data Type
+
 * `Metro` column
 
 ```{r}
@@ -465,10 +447,7 @@ DF$Dimension_Type <- as.factor(DF$Dimension_Type)
 * `Dimension` column
 
 ```{r}
-unique(DF$Dimension) #%>% 
-     # kable() %>%
-     # kable_styling() %>%
-     # scroll_box(width = "500px", height = "200px")
+unique(DF$Dimension)
 length(unique(DF$Dimension))
 ```
 
@@ -497,13 +476,10 @@ tail(DF$Date)
 
 We saw that the format of the column is in year-month, without date. However, since the total number of rows of the data is 50015, we are not sure yet whether all observations of such column are written in the same format. What if there are some row written in year-month-date or even other format?
 
-To answer this, let's see the column deeper by using `unique()` function.
+To answer this, let's see the column deeper by using `View()` function. We're not going to use `unique()` as we're sure it will produce incredibly long lines and that will crash our R markdown article.
 
 ```{r}
-# unique(DF$Date) #%>% 
-     # kable() %>%
-     # kable_styling() %>%
-     # scroll_box(width = "500px", height = "200px")
+View(DF$Date)
 ```
 
 Bingo! As I told you, there are some with year-month-date format. Therefore, we've got two formats in one column. And since this is annoying, we have to unify all observations to one format only. So, we have two format options: year-month or year-month-date.
@@ -840,7 +816,6 @@ Q2_func <- function(year) {
   for (sector in sectors) {
     pay_buffer <- round(mean(Q2[Q2$Sector == sector, "Salary"]))
     pay <- c(pay, pay_buffer)
-    # titles <- c(titles, job)
   }
   year <- rep(year, length(sectors))
   return(data.frame(Year = year, Sector = sectors, Salary = pay))
