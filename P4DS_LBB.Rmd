@@ -776,7 +776,7 @@ Q1_func <- function(year) {
   
   maxPay_eachArea <- vector()
   maxTitle_eachArea <- vector()
-  # browser()
+  
   areas <- levels(Q1$Area)
   for (area in areas) {
     temp <- Q1[Q1$Area == area,]
@@ -784,33 +784,26 @@ Q1_func <- function(year) {
     
     avg <- vector()
     titles <- vector()
-    # browser()
-    
+  
     temp$Job_Title <-  droplevels(temp$Job_Title)
     jobs <- levels(temp$Job_Title)
     for (job in jobs) {
       avg_buffer <- round(mean(temp[temp$Job_Title == job, "Salary"]))
       avg <- c(avg, avg_buffer)
       titles <- c(titles, job)
-      # browser()
     }
     
-    # browser()
     max_pay <- max(avg)
     max_title <- titles[which.max(avg)]
-    avg <- avg[-c(which.max(avg))]
     
-    # browser()
     maxPay_eachArea <- c(maxPay_eachArea, max_pay)
     maxTitle_eachArea <- c(maxTitle_eachArea, max_title)
-    # browser()
-  }
-  
-  # browser()
-  Q1_ans <- as.data.frame(cbind(Area = areas,
+    
+    Q1_ans <- as.data.frame(cbind(Area = areas,
                               Job_Title = maxTitle_eachArea, 
                               Salary = maxPay_eachArea))
-return(Q1_ans)
+    return(Q1_ans)
+  }
 }
 ```
 
@@ -834,29 +827,36 @@ Q1_ans2019[c(1,2,3,4,5,7,8,9,10,11),]
 
 Looking at two tables above, Attorney and Pharmacist mostly lead all jobs' salary.
 
-```{r}
-levels(Salary_Jobs$Area)
-
-for (i in levels(Salary_Jobs$Area)) {
-
-  for (j in levels(Salary_Jobs$Job_Title)) {
-    a <- Salary_Jobs[Salary_Jobs$Area == i & Salary_Jobs$Job_Title == j,]
-    b <- aggregate(formula = Salary ~ Area + Job_Title, data = Atlanta, FUN = mean)
-  }
-
-}
-
-
-
-
-aggregate(formula = Salary ~ Area + Job_Title, data = Atlanta, FUN = mean)
-
-aggregate()
-```
-
 2. Which top 5 sectors do pay salary the most in Boston every year?
 
+In order to answer this question, we need `Salary_Sectors` dataframe. Afterwards, we filter the data by its each year and Boston area. Next, for all rows filtered, calculate mean of salary for each job title in 12 months for each year, and then find the max salary from all averaged salary of job titles. The codes to perform these steps can be find below. Firstly, I create a function.
 
+```{r}
+Q2_func <- function(year) {
+  Q2 <- Salary_Sectors[year(Salary_Sectors$Date) == year & Salary_Sectors$Area == "Boston",]
+
+  pay <- vector()
+  Q2$Sector <-  droplevels(Q2$Sector)
+  sectors <- levels(Q2$Sector)
+  for (sector in sectors) {
+    pay_buffer <- round(mean(Q2[Q2$Sector == sector, "Salary"]))
+    pay <- c(pay, pay_buffer)
+    # titles <- c(titles, job)
+  }
+  year <- rep(year, length(sectors))
+  return(data.frame(Year = year, Sector = sectors, Salary = pay))
+}
+
+Q2_ans2018 <- Q2_func(2018)
+Q2_ans2018 <- Q2_ans2018[order(Q2_ans2018$Salary, decreasing = T),]
+Q2_ans2019 <- Q2_func(2019)
+Q2_ans2019 <- Q2_ans2019[order(Q2_ans2019$Salary, decreasing = T),]
+
+Q2_ans <- rbind(head(Q2_ans2018, 5), head(Q2_ans2019, 5))
+Q2_ans
+```
+
+From above table, we can see that top 4 sectors in 2018 and 2019 are the same. Those sectors stay remained in big four for 2 years. The second highest sector, Biotech and Pharmaceuticals, strengthens the relationship between the first and the second questions that Pharmacists, as one of highest paid job, perhaps also work at Biotech and Pharmaceuticals sector which is also one of sectors with highest salary.
 
 3. Is it true that a company with more than 5000 employees in San Fransisco pays its employees' salary higher than a startup (a company with employees less than 200) in NYC? Show the data in every year!
 
