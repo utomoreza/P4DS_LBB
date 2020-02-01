@@ -42,7 +42,7 @@ By arranging this article, I'm going to answer several questions as follows:
 
 1. What is the job title paid the most in each area in every given year?
 2. Which top 5 sectors do pay salary the most in Boston every year?
-3. Is it true that a company with more than 5000 employees in San Fransisco pays its employees' salary higher than a startup (a company with employees less than 200) in NYC? Show the data in every year!
+3. Is it true that a company with more than 5000 employees in San Francisco pays its employees' salary higher than a startup (a company with employees equal or less than 200) in NYC? Show the data in every year!
 4. What is the trend of Data Scientist job role's salary and need in each area and in the entire US?
 5. Does Physician still become the highest paid job role nationally?
 
@@ -766,7 +766,7 @@ And now, we have all transformed the data and are ready for the next section to 
 
 Finally, we arrive in this section. Here, we're going to answer all questions defined in [Introduction](#intro). So, let's get it started.
 
-1. What is the job title paid the most in each area in every given year?
+## What is the job title paid the most in each area in every given year?
 
 In order to answer this question, we need `Salary_Jobs` dataframe. Afterwards, we filter the data by its each year and each area. Next, for all rows filtered, calculate mean of salary for each job title in 12 months for each year, and then find the max salary from all averaged salary of job titles. The codes to perform these steps can be find below. Firstly, I create a function.
 
@@ -827,9 +827,9 @@ Q1_ans2019[c(1,2,3,4,5,7,8,9,10,11),]
 
 Looking at two tables above, Attorney and Pharmacist mostly lead all jobs' salary.
 
-2. Which top 5 sectors do pay salary the most in Boston every year?
+## Which top 5 sectors do pay salary the most in Boston every year?
 
-In order to answer this question, we need `Salary_Sectors` dataframe. Afterwards, we filter the data by its each year and Boston area. Next, for all rows filtered, calculate mean of salary for each job title in 12 months for each year, and then find the max salary from all averaged salary of job titles. The codes to perform these steps can be find below. Firstly, I create a function.
+In order to answer this question, we need `Salary_Sectors` dataframe. Afterwards, we filter the data by its each year and Boston area. Next, for all rows filtered, calculate mean of salary for each job title in 12 months for each year, and then find the top 5 sectors with the highest salary. The codes to perform these steps can be find below.
 
 ```{r}
 Q2_func <- function(year) {
@@ -858,14 +858,49 @@ Q2_ans
 
 From above table, we can see that top 4 sectors in 2018 and 2019 are the same. Those sectors stay remained in big four for 2 years. The second highest sector, Biotech and Pharmaceuticals, strengthens the relationship between the first and the second questions that Pharmacists, as one of highest paid job, perhaps also work at Biotech and Pharmaceuticals sector which is also one of sectors with highest salary.
 
-3. Is it true that a company with more than 5000 employees in San Fransisco pays its employees' salary higher than a startup (a company with employees less than 200) in NYC? Show the data in every year!
+## Is it true that a company with more than 5000 employees in San Francisco pays its employees' salary higher than a startup (a company with employees equal or less than 200) in NYC? Show the data in every year!
+
+In order to answer this question, we need `Salary_CompanySize` dataframe. Afterwards, we filter the data by San Francisco and New York City areas and company sizes of more than 5000 employees and equal or less than 200.
+
+```{r}
+SF_5000more <- Salary_CompanySize[Salary_CompanySize$Area == "San Francisco" & Salary_CompanySize$Company_Size == "5000+",]
+head(SF_5000more)
+
+NYC_startup <- Salary_CompanySize[Salary_CompanySize$Area == "New York City" & (Salary_CompanySize$Company_Size == "51-200" | Salary_CompanySize$Company_Size == "<51"),]
+head(NYC_startup)
+```
+
+Nice! We've got our subset dataframes. Subsequently, in order to answer the third question, it will be too risky if we employ average directly to combine all monthly data in San Francisco and NYC. Therefore, to capture all information missed by the mean method, we're going to use scatter plot for each area.
+
+```{r}
+plot(x = SF_5000more$Date, y = SF_5000more$Salary,
+     main = "Salary at Big Corporates in San Francisco",
+     xlab = "Year",
+     ylab = "Salary in USD",
+     panel.first = grid())
+```
+
+```{r}
+NYC_startup_agg <- aggregate(formula = Salary ~ Date, data = NYC_startup, FUN = mean)
+
+plot(x = NYC_startup_agg$Date, y = NYC_startup_agg$Salary, 
+     type = "p", 
+     main = "Salary at Startups in New York City",
+     xlab = "Year",
+     ylab = "Salary in USD",
+     panel.first = grid())
+```
+
+By looking at two figures above, it is proven that for 2018 and 2019, big companies in San Francisco always pay their employees higher than startups in New York City pay. Therefore, there is an advice for this case:
+
+```
+If you were to work in the US and choose either to work in San Francisco or New York City, it is recommended to apply for a job at a big company. It produces more money for you!
+```
+
+## What is the trend of Data Scientist job role's salary and need in each area and in the entire US?
 
 
 
-4. What is the trend of Data Scientist job role's salary and need in each area and in the entire US?
-
-
-
-5. Does Physician still become the highest paid job role nationally?
+## Does Physician still become the highest paid job role nationally?
 
 # Conclusions {#concl}
