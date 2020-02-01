@@ -43,7 +43,7 @@ By arranging this article, I'm going to answer several questions as follows:
 1. What is the job title paid the most in each area in every given year?
 2. Which top 5 sectors do pay salary the most in Boston every year?
 3. Is it true that a company with more than 5000 employees in San Francisco pays its employees' salary higher than a startup (a company with employees equal or less than 200) in NYC? Show the data in every year!
-4. What is the trend of Data Scientist job role's salary and need in each area and in the entire US?
+4. What is the relationship between salary and job openings in each area?
 5. Does Physician still become the highest paid job role nationally?
 
 # Dataset {#daset}
@@ -897,10 +897,40 @@ By looking at two figures above, it is proven that for 2018 and 2019, big compan
 If you were to work in the US and choose either to work in San Francisco or New York City, it is recommended to apply for a job at a big company. It produces more money for you!
 ```
 
-## What is the trend of Data Scientist job role's salary and need in each area and in the entire US?
+## What is the relationship between salary and job openings in the US?
 
+In order to answer this question, we need `TimeSeries_Salary` and `TimeSeries_JobOpenings` dataframes. Afterwards, we group them in their months and years, make an average of salary and job openings for each group, and then sort them by month and year. After we've got the new dataframes, we can plot them and calculate the correlation.
 
+```{r}
+SA <- TimeSeries_Salary %>% 
+  mutate(Month = month(Date, label = T), Year = year(Date)) %>% 
+  group_by(Metro, Month, Year) %>% 
+  summarise(Mean_Salary = mean(Salary)) %>% 
+  ungroup() %>% 
+  arrange(Year)
 
-## Does Physician still become the highest paid job role nationally?
+JO <- TimeSeries_JobOpenings %>% 
+  mutate(Month = month(Date, label = T), Year = year(Date)) %>% 
+  group_by(Metro, Month, Year) %>% 
+  summarise(Mean_JobOpenings = mean(Job_Openings)) %>% 
+  ungroup() %>%
+  arrange(Year)
+
+options(scipen = 999)
+plot(x = SA$Mean_Salary, y = JO$Mean_JobOpenings,
+     main = "Relationship between Salary & Job Openings in the US",
+     xlab = "Salary in USD",
+     ylab = "Job Openings",
+     panel.first = grid())
+
+cor_SA_JO <- round(cor(SA$Mean_Salary, JO$Mean_JobOpenings), 3)
+paste0("The corelation value between Salary & Job Openings in the US: ", cor_SA_JO)
+```
+
+As seen in the figure above, almost there is a little relationship between salary and job openings. We could say that in majority, small number (less than 1 million) of job openings spreads somewhat evenly on the salary. High density of the figure can be seen between ranges x: 50K-65K and y:0-1M. Meanwhile, there are some outliers in which small number of salaries is open in a large number of job openings.
+
+In addition to analyze the relationship by viewing on the figure, we can use correlation formula to examine both salary and job openings. We also can see below the figure above that the correlation value of such relationship is `-0.363`. This means that both have a small negative relationship which means when the salary goes up, the job openings somewhat goes down, and vice versa.
+
+## Does Physician become the highest paid job role nationally?
 
 # Conclusions {#concl}
