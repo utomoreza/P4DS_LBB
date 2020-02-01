@@ -780,12 +780,13 @@ Q1_func <- function(year) {
   areas <- levels(Q1$Area)
   for (area in areas) {
     temp <- Q1[Q1$Area == area,]
-    # temp <- temp[order(temp$Job_Title, decreasing = TRUE),]
+    
     
     avg <- vector()
     titles <- vector()
     # browser()
     
+    temp$Job_Title <-  droplevels(temp$Job_Title)
     jobs <- levels(temp$Job_Title)
     for (job in jobs) {
       avg_buffer <- round(mean(temp[temp$Job_Title == job, "Salary"]))
@@ -794,27 +795,18 @@ Q1_func <- function(year) {
       # browser()
     }
     
-    # for (i in 1:3) {
-    #   max_pay <- max(avg)
-    #   max_title <- titles[which.max(avg)]
-    #   avg <- avg[-c(which.max(avg))]
-    #   
-    #   top3pay <- c()
-    # }
-    
-    browser()
+    # browser()
     max_pay <- max(avg)
     max_title <- titles[which.max(avg)]
     avg <- avg[-c(which.max(avg))]
     
-    # top3pay <- tail(sort())
-    browser()
+    # browser()
     maxPay_eachArea <- c(maxPay_eachArea, max_pay)
     maxTitle_eachArea <- c(maxTitle_eachArea, max_title)
-    browser()
+    # browser()
   }
   
-  browser()
+  # browser()
   Q1_ans <- as.data.frame(cbind(Area = areas,
                               Job_Title = maxTitle_eachArea, 
                               Salary = maxPay_eachArea))
@@ -825,14 +817,22 @@ return(Q1_ans)
 By using above function, we can find highest paid job for each area every year.
 
   + The highest paid job in 2018
+  
 ```{r}
-Q1_func(2018)
+Q1_ans2018 <- Q1_func(2018)
+Q1_ans2018 <- Q1_ans2018[order(Q1_ans2018$Salary, decreasing = T),]
+Q1_ans2018[c(1,2,3,4,5,7,8,9,10,11),]
 ```
 
-+ The highest paid job in 2019
+  + The highest paid job in 2019
+
 ```{r}
-Q1_func(2019)
+Q1_ans2019 <- Q1_func(2019)
+Q1_ans2019 <- Q1_ans2019[order(Q1_ans2019$Salary, decreasing = T),]
+Q1_ans2019[c(1,2,3,4,5,7,8,9,10,11),]
 ```
+
+Looking at two tables above, Attorney and Pharmacist mostly lead all jobs' salary.
 
 ```{r}
 levels(Salary_Jobs$Area)
