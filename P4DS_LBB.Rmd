@@ -43,25 +43,24 @@ By arranging this article, I'm going to answer several questions as follows:
 1. What is the job title paid the most in each area in every given year?
 2. Which top 5 sectors do pay salary the most in Boston every year?
 3. Is it true that a company with more than 5000 employees in San Francisco pays its employees' salary higher than a startup (a company with employees equal or less than 200) in NYC? Show the data in every year!
-4. What is the relationship between salary and job openings in each area?
-5. Does Physician still become the highest paid job role nationally?
+4. What is the relationship between salary and job openings in the US?
 
 # Dataset {#daset}
 
 The data are compiled monthly by Glassdoor from 2016. Each monthly datum is in .xlsx extension file. The columns of each of it consist of:
-  - Metro
+  * Metro
 Some metropolitan areas in the US. The National value indicates data from national area.
-  - Dimension Type
+  * Dimension Type
 Type of data we want, e.g. Quick Facts (facts about median salary and job openings), Industry (sectors of the jobs), and so on.
-  - Month
+  * Month
 The time format of the data.
-  - Dimension
+  * Dimension
 This is the derivative of Dimension Type column. All options here depend on Dimension Type.
-  - Measure
+  * Measure
 This column determines what method of measurement used.
-  - Value
+  * Value
 Depending on Dimension Type and Dimension columns you chose, this Value column contains either median salary or number of job openings. The value with '$' (dollar) sign indicates salary in USD.
-  - YoY:
+  * YoY:
 Year over year in percent. For more information about how to understand and calculate YoY, you can read this [article](https://www.sisense.com/blog/calculate-year-year-growth/) I found really helpful. However, in this article, I won't highlight this YoY feature.
 
 Below is a quick look of the data in spreadsheet application.
@@ -425,7 +424,7 @@ Excellent! All data clean! Then, now let's move on to set the data type of each 
 unique(DF$Metro)
 ```
 
-For `Metro` column, there are 16 unique observations only. However, if you see it more closely, there are some areas with the same meaning bu in slight different typing. Therefore, it will be more easier to handle if we tackle with this problem and change this column to factor data type.
+For `Metro` column, there are 16 unique observations only. However, if you see them more closely, there are some areas with the same meaning but in slight different typing. Therefore, it will be more easier to handle if we tackle with this problem and change this column to factor data type.
 
 ```{r}
 DF$Metro <- as.factor(sapply(as.character(DF$Metro), switch, 
@@ -781,12 +780,12 @@ Q1_func <- function(year) {
   for (area in areas) {
     temp <- Q1[Q1$Area == area,]
     
-    
     avg <- vector()
     titles <- vector()
   
     temp$Job_Title <-  droplevels(temp$Job_Title)
     jobs <- levels(temp$Job_Title)
+    
     for (job in jobs) {
       avg_buffer <- round(mean(temp[temp$Job_Title == job, "Salary"]))
       avg <- c(avg, avg_buffer)
@@ -799,11 +798,11 @@ Q1_func <- function(year) {
     maxPay_eachArea <- c(maxPay_eachArea, max_pay)
     maxTitle_eachArea <- c(maxTitle_eachArea, max_title)
     
-    Q1_ans <- as.data.frame(cbind(Area = areas,
-                              Job_Title = maxTitle_eachArea, 
-                              Salary = maxPay_eachArea))
-    return(Q1_ans)
   }
+  Q1_ans <- as.data.frame(cbind(Area = areas,
+                                Job_Title = maxTitle_eachArea, 
+                                Salary = maxPay_eachArea))
+  return(Q1_ans)
 }
 ```
 
@@ -931,6 +930,17 @@ As seen in the figure above, almost there is a little relationship between salar
 
 In addition to analyze the relationship by viewing on the figure, we can use correlation formula to examine both salary and job openings. We also can see below the figure above that the correlation value of such relationship is `-0.363`. This means that both have a small negative relationship which means when the salary goes up, the job openings somewhat goes down, and vice versa.
 
-## Does Physician become the highest paid job role nationally?
-
 # Conclusions {#concl}
+
+We've finished all stages to deliver this article. And now, let's conclude all of them:
+
+* We've explained many things about the data used in [Dataset](#daset) section.
+* We've prepared the data, i.e. scraping the Glassdoor website, downloading the files, importing the files to RStudio, and preparing a single dataframe, in [Preparation](#prep).
+* We've performed [Data Cleansing](#daclen) to clean the data.
+* We've transformed the data in [Data Transformation](#datran) so that it can be easily used in the next sections.
+* We've analyzed the data in [Analysis](#analys) to answer the research questions.
+  1. Mostly the highest paid jobs are dominated by Attorney and Pharmacist.
+  2. Energy & Utilities, Biotech & Pharmaceuticals, Aerospace & Defense, Computer Software & Hardware, Consulting, and Architecture & Civil Engineering are top 5 sectors with the highest salary in Boston.
+  3. It is true that big corporates in San Francisco pay more for their employees than startups in New York City pay; even the gap is steep enough.
+  4. The relationship between salary and job openings is small negative with correlation value `-0.363`.
+* We've answered all questions.
