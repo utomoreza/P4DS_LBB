@@ -18,6 +18,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+![](Glassdoor_img.png)
+
 # Introduction {#intro}
 
 ## Background
